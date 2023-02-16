@@ -1,3 +1,5 @@
 *.mat
 *.mlapp
 *.log
+__pycache__
+.idea
