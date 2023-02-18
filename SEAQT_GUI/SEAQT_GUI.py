@@ -18,31 +18,40 @@ class SEAQTGui():
     FRAME_PAD_Y = 5
     ENTRY_PAD_X = 5
     ENTRY_PAD_Y = 2
+    INPUT_FRAME_PAD_X = 15
+    INPUT_FRAME_PAD_Y = 7
     INPUT_DATA_BUTTON_TEXT = 'Browse'
     INPUT_DATA_BUTTON_WIDTH = 10
     INPUT_DATA_LABEL_WIDTH = 20
-    INPUT_DATA_ENTRY_WIDTH = 50
+    INPUT_DATA_ENTRY_WIDTH = 70
     INPUT_DATA_FILETYPES = (
         ('Excel Spreadsheet', '*.xlsx'),
         ('Comma-Separated Values', '*.csv')
     )
-    INPUT_PARAMETER_LABEL_WIDTH = 27
-    INPUT_PARAMETER_ENTRY_WIDTH = 30
+    INPUT_PARAMETER_LABEL_WIDTH = 33
+    INPUT_PARAMETER_ENTRY_WIDTH = 70
     INPUT_PARAMETER_INNER_FRAME_PAD_Y = 5
-
+    INPUT_BOTTOM_BUTTON_PAD_X = 5
+    DATA_VIEW_FRAME_WIDTH = 600
+    DATA_VIEW_FRAME_HEIGHT = 350
+    TIMER_FRAME_WIDTH = 105
+    TIMER_FRAME_HEIGHT = 60
+    MENU_FRAME_PAD_Y = 5
+    MENU_BUTTON_WIDTH = 10
+    MENU_BUTTON_PAD_X = 5
+    MENU_BUTTON_PAD_Y = 6
+    
 
     def __init__(self):
         '''
-        Class constructor; create a SEAQTGui object and instantiate global variables.
+        Class constructor; create a SEAQTGui object, instantiate global variables, and starts the main menu.
         '''
         logging.info('Starting SEAQT GUI')
 
-        # Create the Tkinter root window and frame
+        # Create the Tkinter root window
         self.tkinter_root = Tk()
         self.tkinter_root.title('SEAQT GUI')
         self.tkinter_root.resizable(False, False)
-        self.gui_frame = ttk.Frame(self.tkinter_root, padding=10)
-        self.gui_frame.grid()
 
         # Class ('global') variables
         self.electron_ev_file_path = StringVar(self.tkinter_root)
@@ -59,34 +68,167 @@ class SEAQTGui():
         self.subsystem_temperatures_list = []                                       # Kelvin
         self.time = DoubleVar(self.tkinter_root, 20)                                # ??? (TODO)
 
-
-    def run(self):
-        '''
-        Run the main loop of the GUI. Gets input from user, passes to the backend, then displays results.
-        '''
-        # Get input data and parameters from user
-        self.get_input_data()
-
-        # Create the window (GUI)
+        # Run the GUI
+        self.activate_main_window()
         self.tkinter_root.mainloop()
 
 
-    def get_input_data(self) -> None:
+    def activate_main_window(self) -> None:
+        '''
+        Create the 'main menu' of the GUI, including the data view, timer, and menu buttons.
+        '''
+        logging.info('Main Window Activated')
+        #############################
+        # Start frame for data view #
+        #############################
+
+        # Create data view frame
+        data_view_frame = ttk.Frame(
+            self.tkinter_root,
+            padding=10,
+            width=self.DATA_VIEW_FRAME_WIDTH,
+            height=self.DATA_VIEW_FRAME_HEIGHT,
+            relief=SOLID
+        )
+        data_view_frame.grid(padx=30, pady=20)
+        data_view_frame.grid_propagate(False)
+
+        # Create data message
+        ttk.Label(
+            data_view_frame,
+            text='No Data Loaded\nClick "Load" to Import',
+            justify=CENTER,
+            padding=10
+        ).place(relx=0.5, rely=0.5, anchor=CENTER)
+
+
+        ###########################
+        # End frame for data view #
+        ###########################
+
+
+        #############################
+        # Start frame for menu view #
+        #############################
+
+        # Create outer menu frame
+        outer_menu_frame = ttk.Frame(
+            self.tkinter_root,
+            padding=10
+        )
+        outer_menu_frame.grid(column=1, row=0)
+
+        # Create timer frame
+        timer_frame = ttk.LabelFrame(
+            outer_menu_frame,
+            text='Time Remaining',
+            width=self.TIMER_FRAME_WIDTH,
+            height=self.TIMER_FRAME_HEIGHT,
+            padding=10,
+            relief=SOLID
+        )
+        timer_frame.grid(column=0, row=0, pady=self.MENU_FRAME_PAD_Y)
+        timer_frame.grid_propagate(False)
+
+        # Timer label
+        ttk.Label(
+            timer_frame,
+            text='00:00:00'
+        ).place(relx=0.5, rely=0.5, anchor=CENTER)
+
+        # Create menu option frame
+        menu_option_frame = ttk.LabelFrame(
+            outer_menu_frame,
+            text='Menu',
+            padding=10,
+            relief=SOLID
+        )
+        menu_option_frame.grid(column=0, row=1, pady=self.MENU_FRAME_PAD_Y)
+
+        # Load data button
+        ttk.Button(
+            menu_option_frame,
+            text='Load',
+            command=self.activate_input_data_window,
+            width=self.MENU_BUTTON_WIDTH
+        ).grid(column=0, row=0, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+
+        # Start run button
+        ttk.Button(
+            menu_option_frame,
+            text='Start',
+            command=self.start_data_process,
+            width=self.MENU_BUTTON_WIDTH
+        ).grid(column=0, row=1, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+
+        # Stop run button
+        ttk.Button(
+            menu_option_frame,
+            text='Stop',
+            command=self.stop_data_process,
+            width=self.MENU_BUTTON_WIDTH
+        ).grid(column=0, row=2, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+
+        # Reset run button
+        ttk.Button(
+            menu_option_frame,
+            text='Reset',
+            command=self.reset_data_process,
+            width=self.MENU_BUTTON_WIDTH
+        ).grid(column=0, row=3, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+
+        # Export run button
+        ttk.Button(
+            menu_option_frame,
+            text='Export',
+            command=self.export_data,
+            width=self.MENU_BUTTON_WIDTH
+        ).grid(column=0, row=4, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+
+        # Help button
+        ttk.Button(
+            menu_option_frame,
+            text='Help',
+            command=self.activate_help_window,
+            width=self.MENU_BUTTON_WIDTH
+        ).grid(column=0, row=5, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+
+        ###########################
+        # End frame for menu view #
+        ###########################
+
+
+        # Copyright
+        ttk.Label(
+            self.tkinter_root,
+            text='© 2023'
+        ).grid(column=1, row=1)
+
+
+    def activate_input_data_window(self) -> None:
         '''
         Collect input data files and important parameters from the user.
-        '''
+        '''       
+        logging.info('Data Input Window Activated')
+        # Create a new pop-up window and take control of input
+        input_window = Toplevel(self.tkinter_root)
+        input_window.title('Load Data and Set Parameters')
+        input_window.grab_set()
+        input_window.grid_columnconfigure(0, weight=1)
+        input_window.grid_columnconfigure(1, weight=1)
+
         ###############################
         # Start frame for file inputs #
         ###############################
 
         # Create file input frame
         file_input_frame = ttk.LabelFrame(
-            self.gui_frame, 
+            input_window, 
             text='Input Data',
             padding=10, 
             relief=SOLID
         )
-        file_input_frame.grid(column=0, row=1, padx=self.FRAME_PAD_X, pady=self.FRAME_PAD_Y)
+        file_input_frame.grid(column=0, row=1, padx=self.INPUT_FRAME_PAD_X, pady=self.INPUT_FRAME_PAD_Y)
 
         # Select electron ev file (label, entry, button)
         ttk.Label(
@@ -168,134 +310,134 @@ class SEAQTGui():
             width=self.INPUT_DATA_BUTTON_WIDTH
         ).grid(column=2, row=3, padx=5)
 
-        #############################
-        # End frame for file inputs #
-        #############################
-
-
         ####################################
         # Start frame for parameter inputs #
         ####################################
 
         # Create parent parameter input frame
         parameter_input_frame = ttk.LabelFrame(
-            self.gui_frame, 
+            input_window, 
             text='SEAQT Parameters',
             padding=10, 
             relief=SOLID
         )
-        parameter_input_frame.grid(column=0, row=2, padx=self.FRAME_PAD_X, pady=self.FRAME_PAD_Y)
-
-        # Create upper parameter input frame
-        upper_parameter_input_frame = ttk.Frame(parameter_input_frame)
-        upper_parameter_input_frame.grid(column=0, row=0, pady=self.INPUT_PARAMETER_INNER_FRAME_PAD_Y)
+        parameter_input_frame.grid(column=0, row=2, padx=self.INPUT_FRAME_PAD_X, pady=self.INPUT_FRAME_PAD_Y)
 
         # Select Fermi energy (label, entry)
         ttk.Label(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             text='Fermi Energy (eV)',
             width=self.INPUT_PARAMETER_LABEL_WIDTH
         ).grid(column=0, row=0)
 
         ttk.Entry(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             textvariable=self.fermi_energy,
             width=self.INPUT_PARAMETER_ENTRY_WIDTH
         ).grid(column=1, row=0, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
 
         # Select phonon group velocities
         ttk.Label(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             text='Phonon Group Velocities (m/s)',
             width=self.INPUT_PARAMETER_LABEL_WIDTH
         ).grid(column=0, row=1)
 
         ttk.Entry(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             textvariable=self.phonon_group_velocities,
             width=self.INPUT_PARAMETER_ENTRY_WIDTH
         ).grid(column=1, row=1, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
 
         # Select phonon relaxation time
         ttk.Label(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             text='Phonon Relaxation Time (s)',
             width=self.INPUT_PARAMETER_LABEL_WIDTH
         ).grid(column=0, row=2)
 
         ttk.Entry(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             textvariable=self.phonon_relaxation_time,
             width=self.INPUT_PARAMETER_ENTRY_WIDTH
         ).grid(column=1, row=2, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
 
         # Select number of subsystems
         ttk.Label(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             text='Number of Subsystems',
             width=self.INPUT_PARAMETER_LABEL_WIDTH
-        ).grid(column=2, row=0)
+        ).grid(column=0, row=3)
 
         ttk.Entry(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             textvariable=self.number_of_subsystems,
             width=self.INPUT_PARAMETER_ENTRY_WIDTH
-        ).grid(column=3, row=0, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
+        ).grid(column=1, row=3, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
 
         # Select subsystems size
         ttk.Label(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             text='Subsystems Size (m)',
             width=self.INPUT_PARAMETER_LABEL_WIDTH
-        ).grid(column=2, row=1)
+        ).grid(column=0, row=4)
 
         ttk.Entry(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             textvariable=self.subsystems_size,
             width=self.INPUT_PARAMETER_ENTRY_WIDTH
-        ).grid(column=3, row=1, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
+        ).grid(column=1, row=4, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
 
         # Select subsystem temperatures
         ttk.Label(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             text='Subsystem Temperatures (K)',
             width=self.INPUT_PARAMETER_LABEL_WIDTH
-        ).grid(column=2, row=2)
+        ).grid(column=0, row=5)
 
         ttk.Entry(
-            upper_parameter_input_frame,
+            parameter_input_frame,
             textvariable=self.subsystem_temperatures_string,
             width=self.INPUT_PARAMETER_ENTRY_WIDTH
-        ).grid(column=3, row=2, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
-
-        # Create lower parameter input frame
-        lower_parameter_input_frame = ttk.Frame(parameter_input_frame)
-        lower_parameter_input_frame.grid(column=0, row=1, pady=self.INPUT_PARAMETER_INNER_FRAME_PAD_Y)
+        ).grid(column=1, row=5, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
 
         # Select time ??? (TODO)
         ttk.Label(
-            lower_parameter_input_frame,
+            parameter_input_frame,
             text='Time (max(tau))',
-            width=15
-        ).grid(column=2, row=3)
+            width=self.INPUT_PARAMETER_LABEL_WIDTH
+        ).grid(column=0, row=6)
 
         ttk.Entry(
-            lower_parameter_input_frame,
+            parameter_input_frame,
             textvariable=self.time,
-            width=5
-        ).grid(column=3, row=3)
+            width=self.INPUT_PARAMETER_ENTRY_WIDTH
+        ).grid(column=1, row=6)
 
         ##################################
-        # End frame for parameter inputs #
+        # Start frame for bottom buttons #
         ##################################
 
+        # Create frame for bottom buttons
+        data_input_button_frame = ttk.Frame(
+            input_window,
+            padding=10
+        )
+        data_input_button_frame.grid(column=0, row=3, padx=self.INPUT_FRAME_PAD_X, pady=self.INPUT_FRAME_PAD_Y)
+
+        # Cancel button
+        ttk.Button(
+            data_input_button_frame,
+            text='Cancel',
+            command=input_window.destroy
+        ).grid(column=0, row=0, padx=self.INPUT_BOTTOM_BUTTON_PAD_X)
 
         # Confirm button (all fields must be filled to confirm)
         ttk.Button(
-            self.gui_frame, 
+            data_input_button_frame, 
             text='Confirm', 
-            command=self.confirm_data_input
-        ).grid(column=0, row=3)
+            command=partial(self.confirm_data_input, input_window)
+        ).grid(column=1, row=0, padx=self.INPUT_BOTTOM_BUTTON_PAD_X)
 
 
     def select_file(self, filetypes: Tuple[Tuple[str, str]], global_file_path: StringVar) -> None:
@@ -313,7 +455,7 @@ class SEAQTGui():
         global_file_path.set(filename)
 
 
-    def confirm_data_input(self) -> None:
+    def confirm_data_input(self, window: Toplevel) -> None:
         '''
         Ensures all data fields are filled out and the data is formatted correctly.
         '''
@@ -334,6 +476,7 @@ class SEAQTGui():
                 title='ERROR',
                 message='Please Complete all Fields'
             )
+            return
         
         # Convert temperature string to array
         subsystem_temps_string = self.subsystem_temperatures_string.get()
@@ -343,6 +486,53 @@ class SEAQTGui():
                 title='ERROR',
                 message='Number of Subsystems Does Not Match Number of Supplied Temperatures'
             )
-        
-        # Close the window
-        self.tkinter_root.destroy
+            return
+
+        # Give back input control and close the window
+        window.grab_release()
+        window.destroy()
+
+
+    def start_data_process(self) -> None:
+        '''
+        Comment
+        '''
+        self.not_implemented_warning()
+
+    
+    def stop_data_process(self) -> None:
+        '''
+        Comment
+        '''
+        self.not_implemented_warning()
+
+
+    def reset_data_process(self) -> None:
+        '''
+        Comment
+        '''
+        self.not_implemented_warning()
+
+
+    def export_data(self) -> None:
+        '''
+        Comment
+        '''
+        self.not_implemented_warning()
+
+
+    def activate_help_window(self) -> None:
+        '''
+        Comment
+        '''
+        self.not_implemented_warning()
+
+    
+    def not_implemented_warning(self) -> None:
+        '''
+        Present a pop-up window warning that the command has not been implemented.
+        '''
+        messagebox.showerror(
+            title='ERROR',
+            message='Feature not Implemented'
+        )

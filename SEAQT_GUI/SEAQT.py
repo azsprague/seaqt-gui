@@ -20,8 +20,5 @@ if __name__ == '__main__':
 
     # Build and run the GUI
     logging.info('Execution Beginning')
-
-    seaqt_gui = SEAQTGui()
-    seaqt_gui.run()
-
+    SEAQTGui()
     logging.info('Execution Complete')
