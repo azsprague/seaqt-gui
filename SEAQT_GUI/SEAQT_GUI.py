@@ -1,3 +1,4 @@
+import os
 import logging
 
 from typing import Tuple
@@ -62,9 +63,9 @@ class SEAQTGui():
         self.fermi_energy = DoubleVar(self.tkinter_root, 6)                         # eV * 1.60218 * (10**-19) Joules
         self.phonon_group_velocities = DoubleVar(self.tkinter_root, 6000)           # m/s
         self.phonon_relaxation_time = DoubleVar(self.tkinter_root, 50 * (10**-12))  # seconds
-        self.number_of_subsystems = IntVar(self.tkinter_root, 12)
+        self.number_of_subsystems = IntVar(self.tkinter_root, 12)                   # amount
         self.subsystems_size = DoubleVar(self.tkinter_root, 1 * (10**-7))           # meters
-        self.subsystem_temperatures_string = StringVar(self.tkinter_root, '295,295,295,295,295,295,300,300,300,300,300,300')   # Kelvin    
+        self.subsystem_temperatures_string = StringVar(self.tkinter_root, '295, 295, 295, 295, 295, 295, 300, 300, 300, 300, 300, 300')   # Kelvin    
         self.subsystem_temperatures_list = []                                       # Kelvin
         self.time = DoubleVar(self.tkinter_root, 20)                                # ??? (TODO)
 
@@ -78,6 +79,7 @@ class SEAQTGui():
         Create the 'main menu' of the GUI, including the data view, timer, and menu buttons.
         '''
         logging.info('Main Window Activated')
+
         #############################
         # Start frame for data view #
         #############################
@@ -100,12 +102,6 @@ class SEAQTGui():
             justify=CENTER,
             padding=10
         ).place(relx=0.5, rely=0.5, anchor=CENTER)
-
-
-        ###########################
-        # End frame for data view #
-        ###########################
-
 
         #############################
         # Start frame for menu view #
@@ -193,11 +189,6 @@ class SEAQTGui():
             width=self.MENU_BUTTON_WIDTH
         ).grid(column=0, row=5, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
-        ###########################
-        # End frame for menu view #
-        ###########################
-
-
         # Copyright
         ttk.Label(
             self.tkinter_root,
@@ -210,6 +201,7 @@ class SEAQTGui():
         Collect input data files and important parameters from the user.
         '''       
         logging.info('Data Input Window Activated')
+
         # Create a new pop-up window and take control of input
         input_window = Toplevel(self.tkinter_root)
         input_window.title('Load Data and Set Parameters')
@@ -442,7 +434,7 @@ class SEAQTGui():
 
     def select_file(self, filetypes: Tuple[Tuple[str, str]], global_file_path: StringVar) -> None:
         '''
-        Comment
+        Open a filesystem window to allow the user to choose a file.
 
         :param filetypes: A tuple of tuples containing (description, filetype)'s, e.g., ('text files', '*.txt')
         :param global_file_path: StringVar to contain the chosen file path
@@ -451,7 +443,6 @@ class SEAQTGui():
             title='Select a File',
             filetypes=filetypes
         )
-
         global_file_path.set(filename)
 
 
@@ -474,13 +465,39 @@ class SEAQTGui():
 
             messagebox.showerror(
                 title='ERROR',
-                message='Please Complete all Fields'
+                message='Please Complete All Fields'
+            )
+            return
+
+        # Ensure data files exist
+        if not os.path.isfile(self.electron_ev_file_path.get()):
+            messagebox.showerror(
+                title='ERROR',
+                message=f"File '{self.electron_ev_file_path.get()}' Could Not Be Found"
+            )
+            return
+        elif not os.path.isfile(self.electron_dos_file_path.get()):
+            messagebox.showerror(
+                title='ERROR',
+                message=f"File '{self.electron_dos_file_path.get()}' Could Not Be Found"
+            )
+            return
+        elif not os.path.isfile(self.phonon_ev_file_path.get()):
+            messagebox.showerror(
+                title='ERROR',
+                message=f"File '{self.phonon_ev_file_path.get()}' Could Not Be Found"
+            )
+            return
+        elif not os.path.isfile(self.phonon_dos_file_path.get()):
+            messagebox.showerror(
+                title='ERROR',
+                message=f"File '{self.phonon_dos_file_path.get()}' Could Not Be Found"
             )
             return
         
         # Convert temperature string to array
         subsystem_temps_string = self.subsystem_temperatures_string.get()
-        subsystem_temps_list = subsystem_temps_string.split(',')
+        subsystem_temps_list = [x.strip() for x in subsystem_temps_string.split(',')]   # Split string by commas and strip any whitespace
         if len(subsystem_temps_list) != self.number_of_subsystems.get():
             messagebox.showerror(
                 title='ERROR',
@@ -495,35 +512,35 @@ class SEAQTGui():
 
     def start_data_process(self) -> None:
         '''
-        Comment
+        TODO
         '''
         self.not_implemented_warning()
 
     
     def stop_data_process(self) -> None:
         '''
-        Comment
+        TODO
         '''
         self.not_implemented_warning()
 
 
     def reset_data_process(self) -> None:
         '''
-        Comment
+        TODO
         '''
         self.not_implemented_warning()
 
 
     def export_data(self) -> None:
         '''
-        Comment
+        TODO
         '''
         self.not_implemented_warning()
 
 
     def activate_help_window(self) -> None:
         '''
-        Comment
+        TODO
         '''
         self.not_implemented_warning()
 
