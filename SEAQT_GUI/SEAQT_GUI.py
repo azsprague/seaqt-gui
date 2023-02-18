@@ -471,38 +471,23 @@ class SEAQTGui():
 
         # Ensure data files exist
         if not os.path.isfile(self.electron_ev_file_path.get()):
-            messagebox.showerror(
-                title='ERROR',
-                message=f"File '{self.electron_ev_file_path.get()}' Could Not Be Found"
-            )
+            self.file_not_found_error(self.electron_ev_file_path.get())
             return
         elif not os.path.isfile(self.electron_dos_file_path.get()):
-            messagebox.showerror(
-                title='ERROR',
-                message=f"File '{self.electron_dos_file_path.get()}' Could Not Be Found"
-            )
+            self.file_not_found_error(self.electron_dos_file_path.get())
             return
         elif not os.path.isfile(self.phonon_ev_file_path.get()):
-            messagebox.showerror(
-                title='ERROR',
-                message=f"File '{self.phonon_ev_file_path.get()}' Could Not Be Found"
-            )
+            self.file_not_found_error(self.phonon_ev_file_path.get())
             return
         elif not os.path.isfile(self.phonon_dos_file_path.get()):
-            messagebox.showerror(
-                title='ERROR',
-                message=f"File '{self.phonon_dos_file_path.get()}' Could Not Be Found"
-            )
+            self.file_not_found_error(self.phonon_dos_file_path.get())
             return
         
         # Convert temperature string to array
         subsystem_temps_string = self.subsystem_temperatures_string.get()
         subsystem_temps_list = [x.strip() for x in subsystem_temps_string.split(',')]   # Split string by commas and strip any whitespace
         if len(subsystem_temps_list) != self.number_of_subsystems.get():
-            messagebox.showerror(
-                title='ERROR',
-                message='Number of Subsystems Does Not Match Number of Supplied Temperatures'
-            )
+            self.pop_up_error('Number of Subsystems Does Not Match Number of Supplied Temperatures')
             return
 
         # Give back input control and close the window
@@ -514,42 +499,60 @@ class SEAQTGui():
         '''
         TODO
         '''
-        self.not_implemented_warning()
+        self.feature_not_implemented_error()
 
     
     def stop_data_process(self) -> None:
         '''
         TODO
         '''
-        self.not_implemented_warning()
+        self.feature_not_implemented_error()
 
 
     def reset_data_process(self) -> None:
         '''
         TODO
         '''
-        self.not_implemented_warning()
+        self.feature_not_implemented_error()
 
 
     def export_data(self) -> None:
         '''
         TODO
         '''
-        self.not_implemented_warning()
+        self.feature_not_implemented_error()
 
 
     def activate_help_window(self) -> None:
         '''
         TODO
         '''
-        self.not_implemented_warning()
+        self.feature_not_implemented_error()
 
     
-    def not_implemented_warning(self) -> None:
+    def feature_not_implemented_error(self) -> None:
         '''
-        Present a pop-up window warning that the command has not been implemented.
+        Create a pop-up warning dialog that the feature has not been implemented.
+        '''
+        self.pop_up_error('Feature Not Implemented')
+
+    
+    def file_not_found_error(self, filename) -> None:
+        '''
+        Create a pop-up warning dialog that the supplied filename does not have an associated file.
+
+        :param filename: The bad filename
+        '''
+        self.pop_up_error(f"File '{filename}' Could Not Be Found")
+
+
+    def pop_up_error(self, error_message: str) -> None:
+        '''
+        Create a pop-up warning dialog containing the supplied message.
+
+        :param message: The message to present the user
         '''
         messagebox.showerror(
             title='ERROR',
-            message='Feature not Implemented'
+            message=error_message
         )
