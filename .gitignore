@@ -2,7 +2,8 @@
 *.mlapp
 *.log
 *.json
-*.txt
+
+Input.txt
 
 .idea
 __pycache__/
