@@ -21,7 +21,6 @@ class SEAQTGui():
     ENTRY_PAD_Y = 2
     INPUT_FRAME_PAD_X = 15
     INPUT_FRAME_PAD_Y = 7
-    INPUT_DATA_BUTTON_TEXT = 'Browse'
     INPUT_DATA_BUTTON_WIDTH = 10
     INPUT_DATA_LABEL_WIDTH = 20
     INPUT_DATA_ENTRY_WIDTH = 70
@@ -41,7 +40,14 @@ class SEAQTGui():
     MENU_BUTTON_WIDTH = 10
     MENU_BUTTON_PAD_X = 5
     MENU_BUTTON_PAD_Y = 6
-    
+
+    DEFAULT_FERMI = 6
+    DEFAULT_VELOCITIES = 6000
+    DEFAULT_RELAXATION = 50 * (10**-12)
+    DEFAULT_SUBSYSTEMS = 12
+    DEFAULT_SUBS_SIZE = 1 * (10**-7)
+    DEFAULT_SUBS_TEMPS = '295, 295, 295, 295, 295, 295, 300, 300, 300, 300, 300, 300'
+    DEFAULT_TIME = 20
 
     def __init__(self):
         '''
@@ -60,14 +66,19 @@ class SEAQTGui():
         self.phonon_ev_file_path = StringVar(self.tkinter_root)
         self.phonon_dos_file_path = StringVar(self.tkinter_root)
         
-        self.fermi_energy = DoubleVar(self.tkinter_root, 6)                         # eV * 1.60218 * (10**-19) Joules
-        self.phonon_group_velocities = DoubleVar(self.tkinter_root, 6000)           # m/s
-        self.phonon_relaxation_time = DoubleVar(self.tkinter_root, 50 * (10**-12))  # seconds
-        self.number_of_subsystems = IntVar(self.tkinter_root, 12)                   # amount
-        self.subsystems_size = DoubleVar(self.tkinter_root, 1 * (10**-7))           # meters
-        self.subsystem_temperatures_string = StringVar(self.tkinter_root, '295, 295, 295, 295, 295, 295, 300, 300, 300, 300, 300, 300')   # Kelvin    
-        self.subsystem_temperatures_list = []                                       # Kelvin
-        self.time = DoubleVar(self.tkinter_root, 20)                                # ??? (TODO)
+        self.fermi_energy = DoubleVar(self.tkinter_root, self.DEFAULT_FERMI)                        # eV * 1.60218 * (10**-19) Joules
+        self.phonon_group_velocities = DoubleVar(self.tkinter_root, self.DEFAULT_VELOCITIES)        # m/s
+        self.phonon_relaxation_time = DoubleVar(self.tkinter_root, self.DEFAULT_RELAXATION)         # seconds
+        self.number_of_subsystems = IntVar(self.tkinter_root, self.DEFAULT_SUBSYSTEMS)              # amount
+        self.subsystems_size = DoubleVar(self.tkinter_root, self.DEFAULT_SUBS_SIZE)                 # meters
+        self.subsystem_temperatures_string = StringVar(self.tkinter_root, self.DEFAULT_SUBS_TEMPS)  # Kelvin    
+        self.subsystem_temperatures_list = []                                                       # Kelvin
+        self.time = DoubleVar(self.tkinter_root, self.DEFAULT_TIME)                                 # ??? (TODO)
+
+        self.start_button = None
+        self.stop_button = None
+        self.reset_button = None
+        self.export_button = None
 
         # Run the GUI
         self.activate_main_window()
@@ -150,36 +161,44 @@ class SEAQTGui():
         ).grid(column=0, row=0, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
         # Start run button
-        ttk.Button(
+        self.start_button = ttk.Button(
             menu_option_frame,
             text='Start',
             command=self.start_data_process,
+            state=DISABLED,
             width=self.MENU_BUTTON_WIDTH
-        ).grid(column=0, row=1, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        )
+        self.start_button.grid(column=0, row=1, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
         # Stop run button
-        ttk.Button(
+        self.stop_button = ttk.Button(
             menu_option_frame,
             text='Stop',
             command=self.stop_data_process,
+            state=DISABLED,
             width=self.MENU_BUTTON_WIDTH
-        ).grid(column=0, row=2, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        )
+        self.stop_button.grid(column=0, row=2, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
         # Reset run button
-        ttk.Button(
+        self.reset_button = ttk.Button(
             menu_option_frame,
             text='Reset',
             command=self.reset_data_process,
+            state=DISABLED,
             width=self.MENU_BUTTON_WIDTH
-        ).grid(column=0, row=3, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        )
+        self.reset_button.grid(column=0, row=3, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
         # Export run button
-        ttk.Button(
+        self.export_button = ttk.Button(
             menu_option_frame,
             text='Export',
             command=self.export_data,
+            state=DISABLED,
             width=self.MENU_BUTTON_WIDTH
-        ).grid(column=0, row=4, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        )
+        self.export_button.grid(column=0, row=4, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
         # Help button
         ttk.Button(
@@ -237,7 +256,7 @@ class SEAQTGui():
 
         ttk.Button(
             file_input_frame, 
-            text=self.INPUT_DATA_BUTTON_TEXT, 
+            text='Browse', 
             command=partial(self.select_file, self.INPUT_DATA_FILETYPES, self.electron_ev_file_path),
             width=self.INPUT_DATA_BUTTON_WIDTH,
         ).grid(column=2, row=0, padx=5)
@@ -257,7 +276,7 @@ class SEAQTGui():
 
         ttk.Button(
             file_input_frame, 
-            text=self.INPUT_DATA_BUTTON_TEXT, 
+            text='Browse', 
             command=partial(self.select_file, self.INPUT_DATA_FILETYPES, self.electron_dos_file_path),
             width=self.INPUT_DATA_BUTTON_WIDTH
         ).grid(column=2, row=1, padx=5)
@@ -277,7 +296,7 @@ class SEAQTGui():
 
         ttk.Button(
             file_input_frame, 
-            text=self.INPUT_DATA_BUTTON_TEXT, 
+            text='Browse', 
             command=partial(self.select_file, self.INPUT_DATA_FILETYPES, self.phonon_ev_file_path),
             width=self.INPUT_DATA_BUTTON_WIDTH
         ).grid(column=2, row=2, padx=5)
@@ -297,7 +316,7 @@ class SEAQTGui():
 
         ttk.Button(
             file_input_frame, 
-            text=self.INPUT_DATA_BUTTON_TEXT, 
+            text='Browse', 
             command=partial(self.select_file, self.INPUT_DATA_FILETYPES, self.phonon_dos_file_path),
             width=self.INPUT_DATA_BUTTON_WIDTH
         ).grid(column=2, row=3, padx=5)
@@ -490,6 +509,10 @@ class SEAQTGui():
             self.pop_up_error('Number of Subsystems Does Not Match Number of Supplied Temperatures')
             return
 
+        # Unlock the start and reset buttons
+        self.start_button['state'] = NORMAL
+        self.reset_button['state'] = NORMAL
+
         # Give back input control and close the window
         window.grab_release()
         window.destroy()
@@ -511,9 +534,33 @@ class SEAQTGui():
 
     def reset_data_process(self) -> None:
         '''
-        TODO
+        Resets all stored / calculated data.
         '''
-        self.feature_not_implemented_error()
+        user_choice = messagebox.askyesno(
+            title='WARNING',
+            message='You are about to erase all data and reset inputs to defaults. Do you wish to proceed?'
+        )
+
+        # If user selects 'YES', reset all values
+        if user_choice:
+            self.electron_ev_file_path.set('')
+            self.electron_dos_file_path.set('')
+            self.phonon_ev_file_path.set('')
+            self.phonon_dos_file_path.set('')
+            
+            self.fermi_energy.set(self.DEFAULT_FERMI)
+            self.phonon_group_velocities.set(self.DEFAULT_VELOCITIES)
+            self.phonon_relaxation_time.set(self.DEFAULT_RELAXATION)
+            self.number_of_subsystems.set(self.DEFAULT_SUBSYSTEMS)
+            self.subsystems_size.set(self.DEFAULT_SUBS_SIZE)
+            self.subsystem_temperatures_string.set(self.DEFAULT_SUBS_TEMPS)
+            self.subsystem_temperatures_list = []
+            self.time .set(self.DEFAULT_TIME)   
+
+            self.start_button['state'] = DISABLED
+            self.stop_button['state'] = DISABLED
+            self.reset_button['state'] = DISABLED
+            self.export_button['state'] = DISABLED
 
 
     def export_data(self) -> None:
