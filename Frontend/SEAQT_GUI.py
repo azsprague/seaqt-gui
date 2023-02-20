@@ -1,3 +1,4 @@
+import json
 import os
 import logging
 
@@ -7,6 +8,8 @@ from tkinter import ttk
 from tkinter import filedialog as fd
 from tkinter import messagebox
 from functools import partial
+
+from Frontend.MATLAB_Backend_Handler import MATLABBackendHandler
 
 
 class SEAQTGui():
@@ -19,6 +22,7 @@ class SEAQTGui():
     FRAME_PAD_Y = 5
     ENTRY_PAD_X = 5
     ENTRY_PAD_Y = 2
+    LOAD_LAST_RUN_BUTTON_WIDTH = 50
     INPUT_FRAME_PAD_X = 15
     INPUT_FRAME_PAD_Y = 7
     INPUT_DATA_BUTTON_WIDTH = 10
@@ -49,9 +53,11 @@ class SEAQTGui():
     DEFAULT_SUBS_TEMPS = '295, 295, 295, 295, 295, 295, 300, 300, 300, 300, 300, 300'
     DEFAULT_TIME = 20
 
+    PARAM_PREFERENCES_FILE_NAME = 'seaqt_prefs.json'
+
     def __init__(self):
         '''
-        Class constructor; create a SEAQTGui object, instantiate global variables, and starts the main menu.
+        Class constructor; create a SEAQTGui object, instantiate global variables, and start the main menu.
         '''
         logging.info('Starting SEAQT GUI')
 
@@ -224,9 +230,19 @@ class SEAQTGui():
         # Create a new pop-up window and take control of input
         input_window = Toplevel(self.tkinter_root)
         input_window.title('Load Data and Set Parameters')
+        input_window.resizable(False, False)
         input_window.grab_set()
         input_window.grid_columnconfigure(0, weight=1)
         input_window.grid_columnconfigure(1, weight=1)
+
+        # Give users the option to load preferences from last run
+        ttk.Button(
+            input_window,
+            text='Import Settings From Last Run',
+            command=self.load_last_run,
+            state=NORMAL if os.path.isfile(self.PARAM_PREFERENCES_FILE_NAME) else DISABLED,
+            width=self.LOAD_LAST_RUN_BUTTON_WIDTH
+        ).grid(column=0, row=0, padx=5, pady=10)
 
         ###############################
         # Start frame for file inputs #
@@ -451,6 +467,94 @@ class SEAQTGui():
         ).grid(column=1, row=0, padx=self.INPUT_BOTTOM_BUTTON_PAD_X)
 
 
+    def load_last_run(self) -> None:
+        '''
+        Load the existing prefs file to speed up runtime.
+        '''
+        if not os.path.isfile(self.PARAM_PREFERENCES_FILE_NAME):
+            self.pop_up_error('No Previous Run Data Found')
+            return
+
+        with open(self.PARAM_PREFERENCES_FILE_NAME, 'r') as prefs_file:
+            try:
+                prefs_json_dict = json.load(prefs_file)
+            except:
+                self.pop_up_error('Could Not Import Prefs; File Corrupted / Modified')
+                return
+
+            throw_error = False
+
+            e_ev_path = prefs_json_dict.get('e_ev_path')
+            if e_ev_path and isinstance(e_ev_path, str):
+                self.electron_ev_file_path.set(e_ev_path)
+            else:
+                throw_error = True
+
+            e_dos_path = prefs_json_dict.get('e_dos_path')
+            if e_dos_path and isinstance(e_dos_path, str):
+                self.electron_dos_file_path.set(e_dos_path)
+            else:
+                throw_error = True
+
+            p_ev_path = prefs_json_dict.get('p_ev_path')
+            if p_ev_path and isinstance(p_ev_path, str):
+                self.phonon_ev_file_path.set(p_ev_path)
+            else:
+                throw_error = True
+
+            p_dos_path = prefs_json_dict.get('p_dos_path')
+            if p_dos_path and isinstance(p_dos_path, str):
+                self.phonon_dos_file_path.set(p_dos_path)
+            else:
+                throw_error = True
+
+            fermi_energy = prefs_json_dict.get('fermi_energy')
+            if fermi_energy and isinstance(fermi_energy, float):
+                self.fermi_energy.set(fermi_energy)
+            else:
+                throw_error = True
+
+            velocities = prefs_json_dict.get('velocities')
+            if velocities and isinstance(velocities, float):
+                self.phonon_group_velocities.set(velocities)
+            else:
+                throw_error = True
+
+            relaxation = prefs_json_dict.get('relaxation')
+            if relaxation and isinstance(relaxation, float):
+                self.phonon_relaxation_time.set(relaxation)
+            else:
+                throw_error = True
+
+            subsystems = prefs_json_dict.get('subsystems')
+            if subsystems and isinstance(subsystems, int):
+                self.number_of_subsystems.set(subsystems)
+            else:
+                throw_error = True
+
+            sub_size = prefs_json_dict.get('sub_size')
+            if sub_size and isinstance(sub_size, float):
+                self.subsystems_size.set(sub_size)
+            else:
+                throw_error = True
+
+            temps = prefs_json_dict.get('temps')
+            if temps and isinstance(temps, list):
+                self.subsystem_temperatures_string.set(', '.join(temps))
+                self.subsystem_temperatures_list = temps
+            else:
+                throw_error = True
+
+            time = prefs_json_dict.get('time')
+            if time and isinstance(time, float):
+                self.time.set(time)
+            else:
+                throw_error = True
+
+            if throw_error:
+                self.pop_up_error('Error Importing One or More Preferences.')
+
+
     def select_file(self, filetypes: Tuple[Tuple[str, str]], global_file_path: StringVar) -> None:
         '''
         Open a filesystem window to allow the user to choose a file.
@@ -482,10 +586,7 @@ class SEAQTGui():
                 not self.subsystem_temperatures_string.get() or
                 not self.time.get()):
 
-            messagebox.showerror(
-                title='ERROR',
-                message='Please Complete All Fields'
-            )
+            self.pop_up_error('Please Complete All Fields')
             return
 
         # Ensure data files exist
@@ -504,10 +605,28 @@ class SEAQTGui():
         
         # Convert temperature string to array
         subsystem_temps_string = self.subsystem_temperatures_string.get()
-        subsystem_temps_list = [x.strip() for x in subsystem_temps_string.split(',')]   # Split string by commas and strip any whitespace
-        if len(subsystem_temps_list) != self.number_of_subsystems.get():
+        self.subsystem_temperatures_list = [x.strip() for x in subsystem_temps_string.split(',')]   # Split string by commas and strip any whitespace
+        if len(self.subsystem_temperatures_list) != self.number_of_subsystems.get():
             self.pop_up_error('Number of Subsystems Does Not Match Number of Supplied Temperatures')
             return
+
+        # Aggregate the input data into a JSON object
+        input_json_dict = {}
+        input_json_dict['e_ev_path'] = self.electron_ev_file_path.get()
+        input_json_dict['e_dos_path'] = self.electron_dos_file_path.get()
+        input_json_dict['p_ev_path'] = self.phonon_ev_file_path.get()
+        input_json_dict['p_dos_path'] = self.phonon_dos_file_path.get()
+        input_json_dict['fermi_energy'] = self.fermi_energy.get()
+        input_json_dict['velocities'] = self.phonon_group_velocities.get()
+        input_json_dict['relaxation'] = self.phonon_relaxation_time.get()
+        input_json_dict['subsystems'] = self.number_of_subsystems.get()
+        input_json_dict['sub_size'] = self.subsystems_size.get()
+        input_json_dict['temps'] = self.subsystem_temperatures_list
+        input_json_dict['time'] = self.time.get()
+
+        # Write the JSON object to the prefs file
+        with open(self.PARAM_PREFERENCES_FILE_NAME, 'w') as prefs_file:
+            json.dump(input_json_dict, prefs_file)
 
         # Unlock the start and reset buttons
         self.start_button['state'] = NORMAL
@@ -520,9 +639,11 @@ class SEAQTGui():
 
     def start_data_process(self) -> None:
         '''
-        TODO
+        Run the SEAQT backend using the desired handler.
         '''
-        self.feature_not_implemented_error()
+        backend = MATLABBackendHandler(self.PARAM_PREFERENCES_FILE_NAME)
+        backend.start_seaqt()
+        logging.debug('SEAQT Backend Started')
 
     
     def stop_data_process(self) -> None:
@@ -555,7 +676,7 @@ class SEAQTGui():
             self.subsystems_size.set(self.DEFAULT_SUBS_SIZE)
             self.subsystem_temperatures_string.set(self.DEFAULT_SUBS_TEMPS)
             self.subsystem_temperatures_list = []
-            self.time .set(self.DEFAULT_TIME)   
+            self.time.set(self.DEFAULT_TIME)   
 
             self.start_button['state'] = DISABLED
             self.stop_button['state'] = DISABLED

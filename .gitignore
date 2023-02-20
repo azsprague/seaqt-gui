@@ -1,5 +1,8 @@
 *.mat
 *.mlapp
 *.log
-__pycache__/
+*.json
+*.txt
+
 .idea
+__pycache__/

@@ -2,7 +2,7 @@ import argparse
 import logging
 import sys
 
-from SEAQT_GUI import SEAQTGui
+from Frontend.SEAQT_GUI import SEAQTGui
 
 
 ### Entry point ###
