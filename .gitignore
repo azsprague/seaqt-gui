@@ -4,6 +4,10 @@
 *.json
 
 Input.txt
+input.txt
 
 .idea
 __pycache__/
+
+[0-9].png
+Figures/[0-9].png

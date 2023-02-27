@@ -1,15 +1,35 @@
 import json
 import os
-import logging
 
+from enum import IntEnum
 from typing import Tuple
+from functools import partial
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog as fd
 from tkinter import messagebox
-from functools import partial
+from PIL import Image, ImageTk
 
 from Frontend.MATLAB_Backend_Handler import MATLABBackendHandler
+from Frontend.Utils import clear_plots
+
+
+class PlotNumber(IntEnum):
+    '''
+    Enum to map plot name to a number for faster acquisition.
+    '''
+    ELECTRON_TEMPERATURE = 1,
+    ELECTRON_NUMBER = 2,
+    ELECTRON_ENERGY = 3,
+    ELECTRICAL_CONDUCTIVITY = 4,
+    SEEBECK_COEFFICIENT = 5,
+    PHONON_TEMPERATURE = 6,
+    PHONON_ENERGY = 7,
+    THERMAL_CONDUCTIVITY = 8,
+    ZT_FACTOR = 9,
+    DATA_NOT_LOADED = 400,
+    DATA_NOT_RUN = 410,
+    ERROR = 999
 
 
 class SEAQTGui():
@@ -20,9 +40,12 @@ class SEAQTGui():
     # Class ('global') constants
     FRAME_PAD_X = 5
     FRAME_PAD_Y = 5
+
     ENTRY_PAD_X = 5
     ENTRY_PAD_Y = 2
+
     LOAD_LAST_RUN_BUTTON_WIDTH = 50
+
     INPUT_FRAME_PAD_X = 15
     INPUT_FRAME_PAD_Y = 7
     INPUT_DATA_BUTTON_WIDTH = 10
@@ -32,18 +55,27 @@ class SEAQTGui():
         ('Excel Spreadsheet', '*.xlsx'),
         ('Comma-Separated Values', '*.csv')
     )
+
     INPUT_PARAMETER_LABEL_WIDTH = 33
     INPUT_PARAMETER_ENTRY_WIDTH = 70
     INPUT_PARAMETER_INNER_FRAME_PAD_Y = 5
     INPUT_BOTTOM_BUTTON_PAD_X = 5
-    DATA_VIEW_FRAME_WIDTH = 600
-    DATA_VIEW_FRAME_HEIGHT = 350
+
+    DATA_VIEW_FRAME_WIDTH = 1000
+    DATA_VIEW_FRAME_HEIGHT = 700
+    DATA_VIEW_FRAME_PAD_X = 5
+    DATA_VIEW_FRAME_PAD_Y = 25
+
     TIMER_FRAME_WIDTH = 105
     TIMER_FRAME_HEIGHT = 60
-    MENU_FRAME_PAD_Y = 5
+
+    MENU_FRAME_PAD_X = 10
+    MENU_FRAME_PAD_Y = 10
     MENU_BUTTON_WIDTH = 10
     MENU_BUTTON_PAD_X = 5
-    MENU_BUTTON_PAD_Y = 6
+    MENU_BUTTON_PAD_Y = 15
+
+    PLOT_BUTTON_PAD_Y = 9
 
     DEFAULT_FERMI = 6
     DEFAULT_VELOCITIES = 6000
@@ -55,12 +87,11 @@ class SEAQTGui():
 
     PARAM_PREFERENCES_FILE_NAME = 'seaqt_prefs.json'
 
+
     def __init__(self):
         '''
         Class constructor; create a SEAQTGui object, instantiate global variables, and start the main menu.
         '''
-        logging.info('Starting SEAQT GUI')
-
         # Create the Tkinter root window
         self.tkinter_root = Tk()
         self.tkinter_root.title('SEAQT GUI')
@@ -81,10 +112,15 @@ class SEAQTGui():
         self.subsystem_temperatures_list = []                                                       # Kelvin
         self.time = DoubleVar(self.tkinter_root, self.DEFAULT_TIME)                                 # ??? (TODO)
 
+        self.load_button = None
         self.start_button = None
-        self.stop_button = None
         self.reset_button = None
-        self.export_button = None
+        self.save_button = None
+
+        self.radio_buttons = []
+        self.selected_plot = None
+        self.data_frame_image_frame = None
+        self.data_frame_image = None
 
         # Run the GUI
         self.activate_main_window()
@@ -95,31 +131,6 @@ class SEAQTGui():
         '''
         Create the 'main menu' of the GUI, including the data view, timer, and menu buttons.
         '''
-        logging.info('Main Window Activated')
-
-        #############################
-        # Start frame for data view #
-        #############################
-
-        # Create data view frame
-        data_view_frame = ttk.Frame(
-            self.tkinter_root,
-            padding=10,
-            width=self.DATA_VIEW_FRAME_WIDTH,
-            height=self.DATA_VIEW_FRAME_HEIGHT,
-            relief=SOLID
-        )
-        data_view_frame.grid(padx=30, pady=20)
-        data_view_frame.grid_propagate(False)
-
-        # Create data message
-        ttk.Label(
-            data_view_frame,
-            text='No Data Loaded\nClick "Load" to Import',
-            justify=CENTER,
-            padding=10
-        ).place(relx=0.5, rely=0.5, anchor=CENTER)
-
         #############################
         # Start frame for menu view #
         #############################
@@ -129,7 +140,7 @@ class SEAQTGui():
             self.tkinter_root,
             padding=10
         )
-        outer_menu_frame.grid(column=1, row=0)
+        outer_menu_frame.grid(column=0, row=0, padx=self.MENU_FRAME_PAD_X, sticky=N)
 
         # Create timer frame
         timer_frame = ttk.LabelFrame(
@@ -159,12 +170,13 @@ class SEAQTGui():
         menu_option_frame.grid(column=0, row=1, pady=self.MENU_FRAME_PAD_Y)
 
         # Load data button
-        ttk.Button(
+        self.load_button = ttk.Button(
             menu_option_frame,
             text='Load',
             command=self.activate_input_data_window,
             width=self.MENU_BUTTON_WIDTH
-        ).grid(column=0, row=0, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        )
+        self.load_button.grid(column=0, row=0, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
         # Start run button
         self.start_button = ttk.Button(
@@ -176,16 +188,6 @@ class SEAQTGui():
         )
         self.start_button.grid(column=0, row=1, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
-        # Stop run button
-        self.stop_button = ttk.Button(
-            menu_option_frame,
-            text='Stop',
-            command=self.stop_data_process,
-            state=DISABLED,
-            width=self.MENU_BUTTON_WIDTH
-        )
-        self.stop_button.grid(column=0, row=2, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
-
         # Reset run button
         self.reset_button = ttk.Button(
             menu_option_frame,
@@ -194,17 +196,17 @@ class SEAQTGui():
             state=DISABLED,
             width=self.MENU_BUTTON_WIDTH
         )
-        self.reset_button.grid(column=0, row=3, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        self.reset_button.grid(column=0, row=2, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
-        # Export run button
-        self.export_button = ttk.Button(
+        # Save run button
+        self.save_button = ttk.Button(
             menu_option_frame,
-            text='Export',
-            command=self.export_data,
+            text='Save',
+            command=self.save_data,
             state=DISABLED,
             width=self.MENU_BUTTON_WIDTH
         )
-        self.export_button.grid(column=0, row=4, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        self.save_button.grid(column=0, row=3, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
         # Help button
         ttk.Button(
@@ -212,7 +214,7 @@ class SEAQTGui():
             text='Help',
             command=self.activate_help_window,
             width=self.MENU_BUTTON_WIDTH
-        ).grid(column=0, row=5, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        ).grid(column=0, row=4, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
         # Copyright
         ttk.Label(
@@ -220,13 +222,159 @@ class SEAQTGui():
             text='© 2023'
         ).grid(column=1, row=1)
 
+        #################################
+        # Start frame for Radio Buttons #
+        #################################
+
+        # Create radio button frame
+        radio_button_frame = ttk.LabelFrame(
+            self.tkinter_root,
+            text='Plot',
+            padding=10,
+            relief=SOLID
+        )
+        radio_button_frame.grid(column=2, row=0, padx=20, pady=20, sticky=N)
+
+        # Variable to store button choice
+        self.selected_plot = IntVar(radio_button_frame, PlotNumber.ELECTRON_TEMPERATURE.value)
+
+        # Radio button for electron temperature vs time
+        rb1 = ttk.Radiobutton(
+            radio_button_frame,
+            text='Electron Temperature',
+            variable=self.selected_plot,
+            value=PlotNumber.ELECTRON_TEMPERATURE.value,
+            command=partial(self.update_plot, PlotNumber.ELECTRON_TEMPERATURE.value),
+            state=DISABLED
+        )
+        rb1.grid(column=0, row=0, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+        self.radio_buttons.append(rb1)
+
+        # Radio button for electron number vs time
+        rb2 = ttk.Radiobutton(
+            radio_button_frame,
+            text='Electron Number',
+            variable=self.selected_plot,
+            value=PlotNumber.ELECTRON_NUMBER.value,
+            command=partial(self.update_plot, PlotNumber.ELECTRON_NUMBER.value),
+            state=DISABLED
+        )
+        rb2.grid(column=0, row=1, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+        self.radio_buttons.append(rb2)
+
+        # Radio button for electron energy vs time
+        rb3 = ttk.Radiobutton(
+            radio_button_frame,
+            text='Electron Energy',
+            variable=self.selected_plot,
+            value=PlotNumber.ELECTRON_ENERGY.value,
+            command=partial(self.update_plot, PlotNumber.ELECTRON_ENERGY.value),
+            state=DISABLED
+        )
+        rb3.grid(column=0, row=2, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+        self.radio_buttons.append(rb3)
+
+        # Radio button for electrical conductivity vs time
+        rb4 = ttk.Radiobutton(
+            radio_button_frame,
+            text='Electrical Conductivity',
+            variable=self.selected_plot,
+            value=PlotNumber.ELECTRICAL_CONDUCTIVITY.value,
+            command=partial(self.update_plot, PlotNumber.ELECTRICAL_CONDUCTIVITY.value),
+            state=DISABLED
+        )
+        rb4.grid(column=0, row=3, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+        self.radio_buttons.append(rb4)
+
+        # Radio button for seebeck coefficient vs time
+        rb5 = ttk.Radiobutton(
+            radio_button_frame,
+            text='Seebeck Coefficient',
+            variable=self.selected_plot,
+            value=PlotNumber.SEEBECK_COEFFICIENT.value,
+            command=partial(self.update_plot, PlotNumber.SEEBECK_COEFFICIENT.value),
+            state=DISABLED
+        )
+        rb5.grid(column=0, row=4, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+        self.radio_buttons.append(rb5)
+
+        # Radio button for phonon temperature vs time
+        rb6 = ttk.Radiobutton(
+            radio_button_frame,
+            text='Phonon Temperature',
+            variable=self.selected_plot,
+            value=PlotNumber.PHONON_TEMPERATURE.value,
+            command=partial(self.update_plot, PlotNumber.PHONON_TEMPERATURE.value),
+            state=DISABLED
+        )
+        rb6.grid(column=0, row=5, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+        self.radio_buttons.append(rb6)
+
+        # Radio button for phonon energy vs time
+        rb7 = ttk.Radiobutton(
+            radio_button_frame,
+            text='Phonon Energy',
+            variable=self.selected_plot,
+            value=PlotNumber.PHONON_ENERGY.value,
+            command=partial(self.update_plot, PlotNumber.PHONON_ENERGY.value),
+            state=DISABLED
+        )
+        rb7.grid(column=0, row=6, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+        self.radio_buttons.append(rb7)
+
+        # Radio button for thermal conductivity vs time
+        rb8 = ttk.Radiobutton(
+            radio_button_frame,
+            text='Thermal Conductivity',
+            variable=self.selected_plot,
+            value=PlotNumber.THERMAL_CONDUCTIVITY.value,
+            command=partial(self.update_plot, PlotNumber.THERMAL_CONDUCTIVITY.value),
+            state=DISABLED
+        )
+        rb8.grid(column=0, row=7, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+        self.radio_buttons.append(rb8)
+
+        # Radio button for ZT factor vs time
+        rb9 = ttk.Radiobutton(
+            radio_button_frame,
+            text='ZT Factor',
+            variable=self.selected_plot,
+            value=PlotNumber.ZT_FACTOR.value,
+            command=partial(self.update_plot, PlotNumber.ZT_FACTOR.value),
+            state=DISABLED
+        )
+        rb9.grid(column=0, row=8, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+        self.radio_buttons.append(rb9)
+
+        #############################
+        # Start frame for data view #
+        #############################
+
+        # Create data view frame
+        data_view_frame = ttk.Frame(
+            self.tkinter_root,
+            padding=10,
+            width=self.DATA_VIEW_FRAME_WIDTH,
+            height=self.DATA_VIEW_FRAME_HEIGHT,
+            relief=SOLID
+        )
+        data_view_frame.grid(column=1, row=0, padx=self.DATA_VIEW_FRAME_PAD_X, pady=self.DATA_VIEW_FRAME_PAD_Y, sticky=N)
+        data_view_frame.grid_propagate(False)
+
+        # Create data image (default "no data loaded")
+        self.data_frame_image_frame = ttk.Label(
+            data_view_frame,
+            justify=CENTER,
+            padding=10
+        )
+        self.data_frame_image_frame.place(relx=0.5, rely=0.5, anchor=CENTER)
+        self.update_plot(PlotNumber.DATA_NOT_LOADED.value)
+
 
     def activate_input_data_window(self) -> None:
         '''
         Collect input data files and important parameters from the user.
-        '''       
-        logging.info('Data Input Window Activated')
-
+        ''' 
         # Create a new pop-up window and take control of input
         input_window = Toplevel(self.tkinter_root)
         input_window.title('Load Data and Set Parameters')
@@ -456,7 +604,7 @@ class SEAQTGui():
         ttk.Button(
             data_input_button_frame,
             text='Cancel',
-            command=input_window.destroy
+            command=partial(self.cancel_data_input, input_window)
         ).grid(column=0, row=0, padx=self.INPUT_BOTTOM_BUTTON_PAD_X)
 
         # Confirm button (all fields must be filled to confirm)
@@ -568,10 +716,38 @@ class SEAQTGui():
         )
         global_file_path.set(filename)
 
+    
+    def cancel_data_input(self, window: Toplevel) -> None:
+        '''
+        Resets all data fields and then closes the window.
+
+        :param window: The window object for the data input screen
+        '''
+        # Erase data input paths
+        self.electron_ev_file_path.set('')
+        self.electron_dos_file_path.set('')
+        self.phonon_ev_file_path.set('')
+        self.phonon_dos_file_path.set('')
+
+        # Set params to default
+        self.fermi_energy.set(self.DEFAULT_FERMI)
+        self.phonon_group_velocities.set(self.DEFAULT_VELOCITIES)
+        self.phonon_relaxation_time.set(self.DEFAULT_RELAXATION)
+        self.subsystems_size.set(self.DEFAULT_SUBS_SIZE)
+        self.number_of_subsystems.set(self.DEFAULT_SUBSYSTEMS)
+        self.subsystem_temperatures_string.set(self.DEFAULT_SUBS_TEMPS)
+        self.time.set(self.DEFAULT_TIME)
+
+        # Give back input control and close the window
+        window.grab_release()
+        window.destroy()
+
 
     def confirm_data_input(self, window: Toplevel) -> None:
         '''
         Ensures all data fields are filled out and the data is formatted correctly.
+
+        :param window: The window object for the data input screen
         '''
         # Check all data fields
         if (not self.electron_dos_file_path.get() or
@@ -628,29 +804,62 @@ class SEAQTGui():
         with open(self.PARAM_PREFERENCES_FILE_NAME, 'w') as prefs_file:
             json.dump(input_json_dict, prefs_file)
 
-        # Unlock the start and reset buttons
+        # Unlock the start and reset buttons, and disable the load button
         self.start_button['state'] = NORMAL
         self.reset_button['state'] = NORMAL
+        self.load_button['state'] = DISABLED
+
+        # Update data window image
+        self.update_plot(PlotNumber.DATA_NOT_RUN.value)
 
         # Give back input control and close the window
         window.grab_release()
         window.destroy()
+
+    
+    def update_plot(self, filenum: int) -> None:
+        '''
+        Update the central plot using the given file number.
+
+        :param filenum: The number relating to the plot to show
+        '''
+        try:
+            # Open the desired image
+            loaded_image = Image.open(f'Figures/{filenum}.png')
+            self.data_frame_image = ImageTk.PhotoImage(loaded_image)
+        except:
+            try:
+                # An error occurred; try to open the error image
+                loaded_image = Image.open(f'Figures/{PlotNumber.ERROR.value}.png')
+                self.data_frame_image = ImageTk.PhotoImage(loaded_image)
+            except:
+                # Error image could not be opened; display pop up error
+                self.pop_up_error('Failed to open image/plot. Data may be corrupted.')
+
+        # Set the image in the frame
+        self.data_frame_image_frame.configure(image=self.data_frame_image)
 
 
     def start_data_process(self) -> None:
         '''
         Run the SEAQT backend using the desired handler.
         '''
+        # Start the backend
         backend = MATLABBackendHandler(self.PARAM_PREFERENCES_FILE_NAME)
         backend.start_seaqt()
-        logging.debug('SEAQT Backend Started')
 
-    
-    def stop_data_process(self) -> None:
-        '''
-        TODO
-        '''
-        self.feature_not_implemented_error()
+        # Wait for the results
+        backend.get_results()
+
+        # Block the start button
+        self.start_button['state'] = DISABLED
+
+        # Unlock radio buttons for plot selection
+        for btn in self.radio_buttons:
+            btn['state'] = NORMAL
+
+        # Display the first plot
+        self.update_plot(self.selected_plot.get())
 
 
     def reset_data_process(self) -> None:
@@ -664,11 +873,13 @@ class SEAQTGui():
 
         # If user selects 'YES', reset all values
         if user_choice:
+            # Reset file paths
             self.electron_ev_file_path.set('')
             self.electron_dos_file_path.set('')
             self.phonon_ev_file_path.set('')
             self.phonon_dos_file_path.set('')
             
+            # Reset parameters to defaults
             self.fermi_energy.set(self.DEFAULT_FERMI)
             self.phonon_group_velocities.set(self.DEFAULT_VELOCITIES)
             self.phonon_relaxation_time.set(self.DEFAULT_RELAXATION)
@@ -678,13 +889,25 @@ class SEAQTGui():
             self.subsystem_temperatures_list = []
             self.time.set(self.DEFAULT_TIME)   
 
+            # Enable load button, disable start, reset, and save buttons
+            self.load_button['state'] = NORMAL
             self.start_button['state'] = DISABLED
-            self.stop_button['state'] = DISABLED
             self.reset_button['state'] = DISABLED
-            self.export_button['state'] = DISABLED
+            self.save_button['state'] = DISABLED
+
+            # Disable all radio buttons and reset the selected one to default
+            self.selected_plot.set(PlotNumber.ELECTRON_TEMPERATURE.value)
+            for btn in self.radio_buttons:
+                btn['state'] = DISABLED
+
+            # Remove any old plots
+            clear_plots()
+
+            # Reset the displayed image (data not loaded)
+            self.update_plot(PlotNumber.DATA_NOT_LOADED.value)
 
 
-    def export_data(self) -> None:
+    def save_data(self) -> None:
         '''
         TODO
         '''

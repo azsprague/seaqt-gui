@@ -1,5 +1,7 @@
 import matlab.engine
 
+from Frontend.Utils import clear_matlab_meta
+
 
 class MATLABBackendHandler():
     '''
@@ -14,7 +16,7 @@ class MATLABBackendHandler():
         '''
         self.input_file_path = input_file_path
         self.matlab_engine = matlab.engine.start_matlab()
-        self.matlab_engine.addpath('../Backend/MATLAB')
+        self.matlab_engine.addpath('Backend/MATLAB')
 
 
     def start_seaqt(self) -> bool:
@@ -23,18 +25,9 @@ class MATLABBackendHandler():
 
         :return: True iff the SEAQT backend was successfully started; False otherwise
         '''
-        # self.matlab_engine.Phase1()
-        pass
-
-
-    def stop_seaqt(self) -> bool:
-        '''
-        Pause (but don't reset) the SEAQT backend process(es).
-
-        :return: True iff the SEAQT backend was successfully stopped; False otherwise
-        '''
-        pass
-
+        self.matlab_engine.start_seaqt(nargout=0)
+        clear_matlab_meta()
+        return True
 
     def reset_seaqt(self) -> bool:
         '''
@@ -42,7 +35,7 @@ class MATLABBackendHandler():
 
         :return: True iff the SEAQT backend was successfully reset; False otherwise
         '''
-        pass
+        return False
 
 
     def get_results(self) -> str:
@@ -51,4 +44,4 @@ class MATLABBackendHandler():
 
         :return: The filename (str) of the SEAQT backend output
         '''
-        pass
+        return False

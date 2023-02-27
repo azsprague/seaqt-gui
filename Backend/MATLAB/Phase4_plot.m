@@ -1,3 +1,5 @@
+function Phase4_plot()
+
 clear all;
 load System_description.mat;
 
@@ -31,11 +33,11 @@ electron_N_y_T=N_y_T;
 electron_length=length(E_sys)/System_num;
 %% Plot electron results
 % electron temperature
-figure(1); hold on; grid;
+figure('Visible', 'off'); hold on; grid;
 T_e = [];
 for j = 1:max_T_index/100
     T_e_T = [];                 
-    for i=[1 5 10 11  15 20]
+    for i=[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
         temp_y = y_T(j,(i-1)*System_length_e+1:i*System_length_e);
         T_e_1 = [ones(System_length_e,1) E_sys(1:System_length_e)./kb]\temp_y';     % calculate temperature from y
         T_e_T = [T_e_T 1/T_e_1(2)];
@@ -43,9 +45,9 @@ for j = 1:max_T_index/100
     T_e = [T_e; T_e_T];
 end
 plot(T,T_e(:,1),'k','LineWidth',2.5);
-plot(T,T_e(:,2),'g','LineWidth',2.5);
-plot(T,T_e(:,3),'b','LineWidth',2.5);
-plot(T,T_e(:,4),'r','LineWidth',2.5);
+plot(T,T_e(:,5),'g','LineWidth',2.5);
+plot(T,T_e(:,10),'b','LineWidth',2.5);
+plot(T,T_e(:,11),'r','LineWidth',2.5);
 plot(T,T_e(:,15),'c','LineWidth',2.5);
 plot(T,T_e(:,20),'m','LineWidth',2.5);
 
@@ -54,12 +56,15 @@ xlabel('Time (seconds)', 'fontsize', 18);
 ylabel('Electron Temperature (K)', 'fontsize', 18)
 title('Electron Temperature vs. Time')
 text(-5,500+(500-300)/20,'(b)','fontsize',16,'fontWeight','bold');
+
+exportgraphics(gca, 'Figures/1.png', 'ContentType', 'image');
+
 % plot electron number
-figure(2); hold on; grid;
+figure('Visible', 'off'); hold on; grid;
 N_e = [];
 for j = 1:max_T_index/100
     N_e_T = [];
-    for i=[1 5 10 11 15 20]
+    for i=[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
         temp_N_y = N_y_T(j,(i-1)*System_length_e+1:i*System_length_e);
         N_e_T = [N_e_T sum(temp_N_y)];
     end
@@ -77,8 +82,10 @@ xlabel('Time (seconds)', 'fontsize', 14);
 ylabel('Electron Number (particle)', 'fontsize', 14);
 title('Electron number vs. Time')
 
+exportgraphics(gca, 'Figures/2.png', 'ContentType', 'image');
+
 % plot electron energy, PRB Figure 4(b)
-figure(3); hold on; grid;
+figure('Visible', 'off'); hold on; grid;
 
 E_e = [];
 for j = 1:max_T_index/100
@@ -90,11 +97,11 @@ for j = 1:max_T_index/100
     E_e = [E_e; E_e_T];
 end
 plot(T,E_e(:,1),'k','LineWidth',2.5)
-plot(T,E_e(:,5),'g','LineWidth',2.5)
-plot(T,E_e(:,10),'b','LineWidth',2.5)
-plot(T,E_e(:,11),'r','LineWidth',2.5)
-plot(T,E_e(:,15),'c','LineWidth',2.5)
-plot(T,E_e(:,20),'m','LineWidth',2.5)
+plot(T,E_e(:,2),'g','LineWidth',2.5)
+plot(T,E_e(:,3),'b','LineWidth',2.5)
+plot(T,E_e(:,4),'r','LineWidth',2.5)
+plot(T,E_e(:,5),'c','LineWidth',2.5)
+plot(T,E_e(:,6),'m','LineWidth',2.5)
 
 set(gca, 'FontSize', 12);
 xlabel('Time (seconds)', 'fontsize', 14);
@@ -102,8 +109,10 @@ ylabel('Electron Energy (J)', 'fontsize', 14)
 title('Interface, electric field, 300 K. Electron Energy vs. Time') 
 text(-5,93.2+(93.2-91.8)/20,'(b)','fontsize',16,'fontWeight','bold');
 
+exportgraphics(gca, 'Figures/3.png', 'ContentType', 'image');
+
 % plot electrical conductivity
-figure(4); hold on; grid;
+figure('Visible', 'off'); hold on; grid;
 e_charge=1.60217663e-19; %in columbs
 ej=1.60218e-19; %ev to J
 ab=1e-7; %size of subsystems
@@ -134,18 +143,20 @@ for j=1:max_T_index/100
     E_c=[E_c; E_c_T];
 end
 plot(T,E_c(:,1),'k','LineWidth',2.5)
-plot(T,E_c(:,5),'g','LineWidth',2.5)
-plot(T,E_c(:,10),'b','LineWidth',2.5)
-plot(T,E_c(:,11),'r','LineWidth',2.5)
-plot(T,E_c(:,15),'c','LineWidth',2.5)
-plot(T,E_c(:,20),'m','LineWidth',2.5)
+plot(T,E_c(:,2),'g','LineWidth',2.5)
+plot(T,E_c(:,3),'b','LineWidth',2.5)
+plot(T,E_c(:,4),'r','LineWidth',2.5)
+plot(T,E_c(:,5),'c','LineWidth',2.5)
+plot(T,E_c(:,6),'m','LineWidth',2.5)
 set(gca,'FontSize', 12);
 xlabel('Time (seconds)', 'fontsize', 14);
 ylabel('Electrical Conductivity (Ohms^-1 cm^-1)','fontsize',14);
 title('Electrical Conductivity vs. Time')
 
+exportgraphics(gca, 'Figures/4.png', 'ContentType', 'image');
+
 %% Seebeck Coefficient
-figure(5); hold on; grid;
+figure('Visible', 'off'); hold on; grid;
 
 echarge=1.60217663e-19;
 T_n=[];
@@ -157,7 +168,7 @@ for j=1:max_T_index/100
         down=0;
         for k=1:System_length_e
             len=(i-1)*System_length_e+k;
-            ch=(electron_ev(len+2)-electron_ev(len));
+            ch=electron_ev((i-1)*System_length_e+2)-electron_ev((i-1)*System_length_e+1);
             temp=electron_y_T(j,len);
             beg=(e_charge^2*(-electron_dos(len))*ab^2 / (electron_tau(len)));
             fez=exp(temp)/(boltz*T_e(j,i)*(exp(temp)+1)^2);
@@ -171,14 +182,16 @@ for j=1:max_T_index/100
 end
         
 plot(T,T_n(:,1),'k','LineWidth',2.5);
-plot(T,T_n(:,5),'g','LineWidth',2.5);
-plot(T,T_n(:,10),'b','LineWidth',2.5);
-plot(T,T_n(:,11),'r','LineWidth',2.5);
-plot(T,T_n(:,15),'c','LineWidth',2.5);
-plot(T,T_n(:,20),'m','LineWidth',2.5);
+plot(T,T_n(:,2),'g','LineWidth',2.5);
+plot(T,T_n(:,3),'b','LineWidth',2.5);
+plot(T,T_n(:,4),'r','LineWidth',2.5);
+plot(T,T_n(:,5),'c','LineWidth',2.5);
+plot(T,T_n(:,6),'m','LineWidth',2.5);
 xlabel('Time (seconds)','fontsize',14);
 ylabel('Seebeck coefficient','fontsize',14);
 title('Seebeck coefficient vs. Time','fontsize',14);
+
+exportgraphics(gca, 'Figures/5.png', 'ContentType', 'image');
 
 %% prepare phonon results
 load Time_Evolution.mat;
@@ -206,7 +219,7 @@ phonon_length=length(E_sys)/System_num;
 
 %% plot phonon results
 % plot phonon temperature, PRB Figure 3(a)
-figure(6); hold on; grid;
+figure('Visible', 'off'); hold on; grid;
 level_display = [];
 for i=[11 15 20]
        temp_T1= 1/kb./beta_T(:,(i-1)*System_length_ph+25);
@@ -234,8 +247,10 @@ ylabel('Phonon Temperature (K)', 'fontsize', 14)
 title('Phonon Temperature vs. Time')
 text(-5,500+(500-300)/20,'(a)','fontsize',16,'fontWeight','bold');
 
+exportgraphics(gca, 'Figures/6.png', 'ContentType', 'image');
+
 % plot phonon energy evolution, PRB Figure 4(c)
-figure(7); hold on; grid;
+figure('Visible', 'off'); hold on; grid;
 for i=[1 5 10]
     temp_E = E_y_T(:,(i-1)*System_length_ph+1:(i)*System_length_ph);
     if i==1
@@ -262,8 +277,10 @@ ylabel('Phonon Energy (J)', 'fontsize', 14)
 title('Phonon Energy vs. Time')
 text(-5,90+(90-30)/20,'(c)','fontsize',16,'fontWeight','bold');
 
+exportgraphics(gca, 'Figures/7.png', 'ContentType', 'image');
+
 %% thermal conductivity
-figure(8); hold on; grid;
+figure('Visible', 'off'); hold on; grid;
 
 hp=1.054571817e-34; %h bar planks
 eh=1.509190311e33; % Joules to hertz
@@ -306,17 +323,19 @@ for j=1:max_T_index/100
 end 
 
 plot(T,T_c(:,1),'k','LineWidth',2.5);
-plot(T,T_c(:,5),'g','LineWidth',2.5);
-plot(T,T_c(:,10),'b','LineWidth',2.5);
-plot(T,T_c(:,11),'r','LineWidth',2.5);
-plot(T,T_c(:,15),'c','LineWidth',2.5);
-plot(T,T_c(:,20),'m','LineWidth',2.5);
+plot(T,T_c(:,2),'g','LineWidth',2.5);
+plot(T,T_c(:,3),'b','LineWidth',2.5);
+plot(T,T_c(:,4),'r','LineWidth',2.5);
+plot(T,T_c(:,5),'c','LineWidth',2.5);
+plot(T,T_c(:,6),'m','LineWidth',2.5);
 set(gca,'FontSize',12);
 xlabel('Time (seconds)','fontsize',14);
 ylabel('Thermal Conductivity','fontsize',14);
 title('Thermal Conductivity vs. Time','fontsize',14);
 
-figure(9); hold on; grid;
+exportgraphics(gca, 'Figures/8.png', 'ContentType', 'image');
+
+figure('Visible', 'off'); hold on; grid;
 
 zt=[];
 for i=1:max_T_index/100
@@ -337,3 +356,5 @@ plot(T,zt(:,6),'m','Linewidth',2.5)
 xlabel("Time (seconds)",'fontsize',14);
 ylabel("ZT factor","fontsize",14)
 title("ZT Factor vs. time",'fontsize',14)
+
+exportgraphics(gca, 'Figures/9.png', 'ContentType', 'image');

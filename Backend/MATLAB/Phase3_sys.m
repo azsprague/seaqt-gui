@@ -1,3 +1,5 @@
+function Phase3_sys()
+
 clear all;
 load System_description.mat;
 load Phonon.mat;
@@ -11,8 +13,8 @@ global System_length_ph;
 
 %% Phonon initial condition
 System_length_ph = length(E_sys_ph_single);
-temp_all_top=405; %Initial temp for systems 1-10
-temp_all_bot=395; %initial temp for systems 11-20
+temp_all_top=455; %Initial temp for systems 1-10
+temp_all_bot=445; %initial temp for systems 11-20
 
 T_a_ph=temp_all_top; %Phonon temps
 T_b_ph=temp_all_bot;
@@ -49,9 +51,9 @@ Initial_beta_e = 1./T_sys_e./kb;
 Fermi_a=-6 * 1.60218 * 10^(-19); %Fermi level of system
 
 %% Get change in Fermi level with temperature
-Fermi_level=[]
+Fermi_level=[];
 for i=1:System_num
-    Fermi_level=[Fermi_level,Fermi_a]
+    Fermi_level=[Fermi_level,Fermi_a];
 end
 for i=1:System_num
     for k=1:length(E_sys_e_single) 
@@ -87,7 +89,7 @@ Activity_sys = [Activity_sys_e; Activity_sys_ph];       %assemble electron y and
 %% Run equation of motion of y
 tic;
 ts = 0;
-tf = 20*max(tau);       %finishing time
+tf = 1000*min(tau);       %finishing time
 
 [ts tf];
 options   = odeset('AbsTol',1e-7,'RelTol',1e-5);

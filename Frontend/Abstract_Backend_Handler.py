@@ -29,17 +29,6 @@ class BackendHandler(ABC):
 
 
     @abstractmethod
-    def stop_seaqt(self) -> bool:
-        '''
-        Pause (but don't reset) the SEAQT backend process(es).
-        To be implemented in child class.
-
-        :return: True iff the SEAQT backend was successfully stopped; False otherwise
-        '''
-        pass
-
-
-    @abstractmethod
     def reset_seaqt(self) -> bool:
         '''
         Reset the SEAQT backend process(es).

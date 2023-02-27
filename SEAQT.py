@@ -1,24 +1,19 @@
 import argparse
-import logging
-import sys
 
+from Frontend.Utils import clear_matlab_meta, clear_plots
 from Frontend.SEAQT_GUI import SEAQTGui
 
 
 ### Entry point ###
 if __name__ == '__main__':
     
-    # Parse command-line arguments
+    # Erase old plots and metadata from previous run(s)
+    clear_plots()
+    clear_matlab_meta()
+
+    # Parse command-line arguments (none yet. TODO: pipeline?)
     parser = argparse.ArgumentParser(description='Run SEAQT code.')
-    parser.add_argument('-v', '--verbose', action='store_true', help='output debug messages to console')
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='[%(asctime)s] [%(levelname)s] %(message)s')
-    else:
-        logging.basicConfig(stream=sys.stderr, level=logging.CRITICAL, format='[%(asctime)s] [%(levelname)s] %(message)s')
-
     # Build and run the GUI
-    logging.info('Execution Beginning')
     SEAQTGui()
-    logging.info('Execution Complete')
