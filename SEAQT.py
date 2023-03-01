@@ -12,7 +12,7 @@ if __name__ == '__main__':
     clear_matlab_meta()
 
     # Parse command-line arguments (none yet. TODO: pipeline?)
-    parser = argparse.ArgumentParser(description='Run SEAQT code.')
+    parser = argparse.ArgumentParser(description='Run SEAQT code with GUI.')
     args = parser.parse_args()
 
     # Build and run the GUI
