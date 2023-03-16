@@ -18,6 +18,8 @@ class PlotNumber(IntEnum):
     '''
     Enum to map plot name to a number for faster acquisition.
     '''
+    INVALID = -1,
+    UNKNOWN = 0,
     ELECTRON_TEMPERATURE = 1,
     ELECTRON_NUMBER = 2,
     ELECTRON_ENERGY = 3,
@@ -30,6 +32,16 @@ class PlotNumber(IntEnum):
     DATA_NOT_LOADED = 400,
     DATA_NOT_RUN = 410,
     ERROR = 999
+
+
+class TimeType(IntEnum):
+    '''
+    Enum to map type type to a number for faster acquisition.
+    '''
+    INVALID = -1,
+    UNKNOWN = 0,
+    MIN = 1,
+    MAX = 2,
 
 
 class SEAQTGui():
@@ -117,10 +129,13 @@ class SEAQTGui():
         self.reset_button = None
         self.save_button = None
 
-        self.radio_buttons = []
+        self.plot_radio_buttons = []
         self.selected_plot = None
         self.data_frame_image_frame = None
         self.data_frame_image = None
+
+        self.time_radio_buttons = []
+        self.selected_time_type = None
 
         # Run the GUI
         self.activate_main_window()
@@ -248,7 +263,7 @@ class SEAQTGui():
             state=DISABLED
         )
         rb1.grid(column=0, row=0, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.radio_buttons.append(rb1)
+        self.plot_radio_buttons.append(rb1)
 
         # Radio button for electron number vs time
         rb2 = ttk.Radiobutton(
@@ -260,7 +275,7 @@ class SEAQTGui():
             state=DISABLED
         )
         rb2.grid(column=0, row=1, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.radio_buttons.append(rb2)
+        self.plot_radio_buttons.append(rb2)
 
         # Radio button for electron energy vs time
         rb3 = ttk.Radiobutton(
@@ -272,7 +287,7 @@ class SEAQTGui():
             state=DISABLED
         )
         rb3.grid(column=0, row=2, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.radio_buttons.append(rb3)
+        self.plot_radio_buttons.append(rb3)
 
         # Radio button for electrical conductivity vs time
         rb4 = ttk.Radiobutton(
@@ -284,7 +299,7 @@ class SEAQTGui():
             state=DISABLED
         )
         rb4.grid(column=0, row=3, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.radio_buttons.append(rb4)
+        self.plot_radio_buttons.append(rb4)
 
         # Radio button for seebeck coefficient vs time
         rb5 = ttk.Radiobutton(
@@ -296,7 +311,7 @@ class SEAQTGui():
             state=DISABLED
         )
         rb5.grid(column=0, row=4, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.radio_buttons.append(rb5)
+        self.plot_radio_buttons.append(rb5)
 
         # Radio button for phonon temperature vs time
         rb6 = ttk.Radiobutton(
@@ -308,7 +323,7 @@ class SEAQTGui():
             state=DISABLED
         )
         rb6.grid(column=0, row=5, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.radio_buttons.append(rb6)
+        self.plot_radio_buttons.append(rb6)
 
         # Radio button for phonon energy vs time
         rb7 = ttk.Radiobutton(
@@ -320,7 +335,7 @@ class SEAQTGui():
             state=DISABLED
         )
         rb7.grid(column=0, row=6, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.radio_buttons.append(rb7)
+        self.plot_radio_buttons.append(rb7)
 
         # Radio button for thermal conductivity vs time
         rb8 = ttk.Radiobutton(
@@ -332,7 +347,7 @@ class SEAQTGui():
             state=DISABLED
         )
         rb8.grid(column=0, row=7, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.radio_buttons.append(rb8)
+        self.plot_radio_buttons.append(rb8)
 
         # Radio button for ZT factor vs time
         rb9 = ttk.Radiobutton(
@@ -344,7 +359,7 @@ class SEAQTGui():
             state=DISABLED
         )
         rb9.grid(column=0, row=8, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.radio_buttons.append(rb9)
+        self.plot_radio_buttons.append(rb9)
 
         #############################
         # Start frame for data view #
@@ -576,18 +591,54 @@ class SEAQTGui():
             width=self.INPUT_PARAMETER_ENTRY_WIDTH
         ).grid(column=1, row=5, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
 
-        # Select time ??? (TODO)
+        ##################################
+        # Start frame for time selection #
+        ##################################
+
+        # Create frame for time selection
+        time_selection_frame = ttk.LabelFrame(
+            input_window,
+            text='Time',
+            padding=10,
+            relief=SOLID
+        )
+        time_selection_frame.grid(column=0, row=3, padx=self.INPUT_FRAME_PAD_X, pady=self.INPUT_FRAME_PAD_Y)
+
+        # Select time duration
         ttk.Label(
-            parameter_input_frame,
-            text='Time (max(tau))',
-            width=self.INPUT_PARAMETER_LABEL_WIDTH
-        ).grid(column=0, row=6)
+            time_selection_frame,
+            text='Run Duration',
+            width=15
+        ).grid(column=0, row=0)
 
         ttk.Entry(
-            parameter_input_frame,
+            time_selection_frame,
             textvariable=self.time,
-            width=self.INPUT_PARAMETER_ENTRY_WIDTH
-        ).grid(column=1, row=6)
+            width=15
+        ).grid(column=1, row=0)
+
+        # Variable to store button choice
+        self.selected_time_choice = IntVar(time_selection_frame, TimeType.MIN.value)
+
+        # Radio button for min time
+        rb1 = ttk.Radiobutton(
+            time_selection_frame,
+            text='Min(tau)',
+            variable=self.selected_time_choice,
+            value=TimeType.MIN.value
+        )
+        rb1.grid(column=0, row=1, padx=5, pady=5)
+        self.time_radio_buttons.append(rb1)
+
+        # Radio button for max time
+        rb2 = ttk.Radiobutton(
+            time_selection_frame,
+            text='Max(tau)',
+            variable=self.selected_time_choice,
+            value=TimeType.MAX.value
+        )
+        rb2.grid(column=1, row=1, padx=5, pady=5)
+        self.time_radio_buttons.append(rb2)        
 
         ##################################
         # Start frame for bottom buttons #
@@ -598,7 +649,7 @@ class SEAQTGui():
             input_window,
             padding=10
         )
-        data_input_button_frame.grid(column=0, row=3, padx=self.INPUT_FRAME_PAD_X, pady=self.INPUT_FRAME_PAD_Y)
+        data_input_button_frame.grid(column=0, row=4, padx=self.INPUT_FRAME_PAD_X, pady=self.INPUT_FRAME_PAD_Y)
 
         # Cancel button
         ttk.Button(
@@ -798,7 +849,8 @@ class SEAQTGui():
         input_json_dict['subsystems'] = self.number_of_subsystems.get()
         input_json_dict['sub_size'] = self.subsystems_size.get()
         input_json_dict['temps'] = self.subsystem_temperatures_list
-        input_json_dict['time'] = self.time.get()
+        input_json_dict['time_duration'] = self.time.get()
+        input_json_dict['time_type'] = self.selected_time_type.get()
 
         # Write the JSON object to the prefs file
         with open(self.PARAM_PREFERENCES_FILE_NAME, 'w') as prefs_file:
@@ -834,7 +886,7 @@ class SEAQTGui():
                 self.data_frame_image = ImageTk.PhotoImage(loaded_image)
             except:
                 # Error image could not be opened; display pop up error
-                self.pop_up_error('Failed to open image/plot. Data may be corrupted.')
+                self.pop_up_error('Failed to open image/plot. Data may be missing or corrupted.')
 
         # Set the image in the frame
         self.data_frame_image_frame.configure(image=self.data_frame_image)
@@ -855,7 +907,7 @@ class SEAQTGui():
         self.start_button['state'] = DISABLED
 
         # Unlock radio buttons for plot selection
-        for btn in self.radio_buttons:
+        for btn in self.plot_radio_buttons:
             btn['state'] = NORMAL
 
         # Display the first plot
@@ -897,7 +949,7 @@ class SEAQTGui():
 
             # Disable all radio buttons and reset the selected one to default
             self.selected_plot.set(PlotNumber.ELECTRON_TEMPERATURE.value)
-            for btn in self.radio_buttons:
+            for btn in self.plot_radio_buttons:
                 btn['state'] = DISABLED
 
             # Remove any old plots
@@ -916,9 +968,9 @@ class SEAQTGui():
 
     def activate_help_window(self) -> None:
         '''
-        TODO
+        Inform the user to post a ticket to the github (for now). Eventually, should show FAQ.
         '''
-        self.feature_not_implemented_error()
+        self.pop_up_error('Please visit https://github.com/azsprague/seaqt-gui for more info on the system.\n\nIf you have an issue or find a bug, view or open a ticket at https://github.com/azsprague/seaqt-gui/issues. \n\nI am a solo developer and will do my best to handle issues as they arise. Thank You!')
 
     
     def feature_not_implemented_error(self) -> None:

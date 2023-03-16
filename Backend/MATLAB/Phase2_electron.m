@@ -20,12 +20,12 @@ for i = 1:(length(E_sys_dos))
         %Calculate relaxation time
         mr=(dNdE_sys_e_single(i)*h^3/(sqrt(2*abs((E_sys_e_single(i)-fermi))^3)*8*pi))^(2/3);
         %Relaxation time calc. in PBR eq.41
-        tau_e_single(i)=abs(1*mr/E_sys_e_single(i));
+        % tau_e_single(i)=abs(1*mr/E_sys_e_single(i));
         
         %Can't have 0 relaxation time
-        if tau_e_single(i)==0
+        % if tau_e_single(i)==0
             tau_e_single(i)=abs(1*(9.1e-31)/E_sys_e_single(i));
-        end
+        % end
 end
 %Need systems in this format
 E_sys_e_single = E_sys_e_single.';
