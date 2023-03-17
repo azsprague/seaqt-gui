@@ -4,13 +4,13 @@ clear all;
 load System_description.mat;
 
 %% prepare electron results
-load Time_Evolution.mat; % load solution of equation of motion
+load Time_Evolution.mat;                                    % load solution of equation of motion
 max_T_index=floor(length(T)/100)*100;
-T = T(1:100:max_T_index);       % Time
-y_T = y_T(1:100:max_T_index,1:System_length_e*System_num); %solution of equation of motion
-E_sys = E_sys(1:System_length_e*System_num);        %band structure
-dNdE_sys = dNdE_sys(1:System_length_e*System_num);  %density of state
-tau_sys=tau(1:System_length*System_num);
+T = T(1:100:max_T_index);                                   % Time
+y_T = y_T(1:100:max_T_index,1:System_length_e*System_num);  % solution of equation of motion
+E_sys = E_sys(1:System_length_e*System_num);                % band structure
+dNdE_sys = dNdE_sys(1:System_length_e*System_num);          % density of state
+tau_sys = tau(1:System_length*System_num);
 
 %% Time evolutions of electron properties
 p_y = 1./(exp(y_T)+1);                          % occupation probability of every band (variable f for time/100 and systemlength_e*System_num)
@@ -22,65 +22,74 @@ N_T_e = sum(N_y_T,2);                              % total electron number
 E_T_e = sum(E_y_T,2);                              % total energy
 beta_T = y_T./(ones(length(T),1)*E_sys');  
 
-%Save values for later
-electron_ev=E_sys;
-electron_dos=dNdE_sys;
-electron_beta=beta_T;
-electron_tau=tau_sys;
-electron_y_T=y_T;
-electron_p_y=p_y;
-electron_N_y_T=N_y_T;
-electron_length=length(E_sys)/System_num;
+% Save values for later
+electron_ev = E_sys;
+electron_dos = dNdE_sys;
+electron_beta = beta_T;
+electron_tau = tau_sys;
+electron_y_T = y_T;
+electron_p_y = p_y;
+electron_N_y_T = N_y_T;
+electron_length = length(E_sys) / System_num;
+
+% Re-import JSON file in case of changes / subsequent runs
+gui_json_data = jsondecode(fileread('seaqt_prefs.json'));
+
+% Extract the total and selected subsystems
+total_subs = 1:gui_json_data.subsystems;
+selected_subs = (gui_json_data.selected_subs + 1)';
+
 %% Plot electron results
 % electron temperature
 figure('Visible', 'off'); hold on; grid;
+
 T_e = [];
 for j = 1:max_T_index/100
     T_e_T = [];                 
-    for i=[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
+    for i = total_subs
         temp_y = y_T(j,(i-1)*System_length_e+1:i*System_length_e);
         T_e_1 = [ones(System_length_e,1) E_sys(1:System_length_e)./kb]\temp_y';     % calculate temperature from y
         T_e_T = [T_e_T 1/T_e_1(2)];
     end
     T_e = [T_e; T_e_T];
 end
-plot(T,T_e(:,1),'k','LineWidth',2.5);
-plot(T,T_e(:,5),'g','LineWidth',2.5);
-plot(T,T_e(:,10),'b','LineWidth',2.5);
-plot(T,T_e(:,11),'r','LineWidth',2.5);
-plot(T,T_e(:,15),'c','LineWidth',2.5);
-plot(T,T_e(:,20),'m','LineWidth',2.5);
 
-set(gca, 'FontSize', 18);
-xlabel('Time (seconds)', 'fontsize', 18);
-ylabel('Electron Temperature (K)', 'fontsize', 18)
-title('Electron Temperature vs. Time')
-text(-5,500+(500-300)/20,'(b)','fontsize',16,'fontWeight','bold');
+for i = selected_subs
+    plot(T, T_e(:, i), 'LineWidth', 1.5);
+end
+
+set(gca, 'FontSize', 8);
+xlabel('Time (seconds)', 'fontsize', 12);
+ylabel('Electron Temperature (K)', 'fontsize', 12)
+title('Electron Temperature vs. Time', 'fontsize', 14)
+lgd = legend(arrayfun(@num2str, selected_subs, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
+title(lgd, 'Subsystem')
 
 exportgraphics(gca, 'Figures/1.png', 'ContentType', 'image');
 
 % plot electron number
 figure('Visible', 'off'); hold on; grid;
+
 N_e = [];
 for j = 1:max_T_index/100
     N_e_T = [];
-    for i=[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
+    for i = total_subs
         temp_N_y = N_y_T(j,(i-1)*System_length_e+1:i*System_length_e);
         N_e_T = [N_e_T sum(temp_N_y)];
     end
     N_e = [N_e; N_e_T];
 end
-plot(T,N_e(:,1),'k','LineWidth',2.5)
-plot(T,N_e(:,5),'g','LineWidth',2.5)
-plot(T,N_e(:,10),'b','LineWidth',2.5)
-plot(T,N_e(:,11),'r','LineWidth',2.5)
-plot(T,N_e(:,15),'c','LineWidth',2.5)
-plot(T,N_e(:,20),'m','LineWidth',2.5)
 
-set(gca, 'FontSize', 12);
-xlabel('Time (seconds)', 'fontsize', 14);
-ylabel('Electron Number (particle)', 'fontsize', 14);
-title('Electron number vs. Time')
+for i = selected_subs
+    plot(T, N_e(:, i), 'LineWidth', 1.5);
+end
+
+set(gca, 'FontSize', 8);
+xlabel('Time (seconds)', 'fontsize', 12);
+ylabel('Electron Number (particle)', 'fontsize', 12);
+title('Electron number vs. Time', 'fontsize', 14)
+lgd = legend(arrayfun(@num2str, selected_subs, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
+title(lgd, 'Subsystem')
 
 exportgraphics(gca, 'Figures/2.png', 'ContentType', 'image');
 
@@ -90,29 +99,29 @@ figure('Visible', 'off'); hold on; grid;
 E_e = [];
 for j = 1:max_T_index/100
     E_e_T = []; 
-    for i=[1 5 10 11 15 20]
+    for i = total_subs
         temp_E_y = E_y_T(j,(i-1)*System_length_e+1:i*System_length_e);
         E_e_T = [E_e_T sum(temp_E_y)];
     end
     E_e = [E_e; E_e_T];
 end
-plot(T,E_e(:,1),'k','LineWidth',2.5)
-plot(T,E_e(:,2),'g','LineWidth',2.5)
-plot(T,E_e(:,3),'b','LineWidth',2.5)
-plot(T,E_e(:,4),'r','LineWidth',2.5)
-plot(T,E_e(:,5),'c','LineWidth',2.5)
-plot(T,E_e(:,6),'m','LineWidth',2.5)
 
-set(gca, 'FontSize', 12);
-xlabel('Time (seconds)', 'fontsize', 14);
-ylabel('Electron Energy (J)', 'fontsize', 14)
-title('Interface, electric field, 300 K. Electron Energy vs. Time') 
-text(-5,93.2+(93.2-91.8)/20,'(b)','fontsize',16,'fontWeight','bold');
+for i = selected_subs
+    plot(T, E_e(:, i), 'LineWidth', 1.5);
+end
+
+set(gca, 'FontSize', 8);
+xlabel('Time (seconds)', 'fontsize', 12);
+ylabel('Electron Energy (J)', 'fontsize', 12)
+title('Electron Energy vs. Time', 'fontsize', 14) 
+lgd = legend(arrayfun(@num2str, selected_subs, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
+title(lgd, 'Subsystem')
 
 exportgraphics(gca, 'Figures/3.png', 'ContentType', 'image');
 
 % plot electrical conductivity
 figure('Visible', 'off'); hold on; grid;
+
 e_charge=1.60217663e-19; %in columbs
 ej=1.60218e-19; %ev to J
 ab=1e-7; %size of subsystems
@@ -121,7 +130,7 @@ em=9.109e-31;
 E_c=[];
 for j=1:max_T_index/100
     E_c_T=[];
-    for i=[1 5 10 11 15 20]
+    for i = total_subs
         up=0;
         for k=1:System_length_e
             am=(i-1)*System_length_e+k;
@@ -142,16 +151,17 @@ for j=1:max_T_index/100
     end
     E_c=[E_c; E_c_T];
 end
-plot(T,E_c(:,1),'k','LineWidth',2.5)
-plot(T,E_c(:,2),'g','LineWidth',2.5)
-plot(T,E_c(:,3),'b','LineWidth',2.5)
-plot(T,E_c(:,4),'r','LineWidth',2.5)
-plot(T,E_c(:,5),'c','LineWidth',2.5)
-plot(T,E_c(:,6),'m','LineWidth',2.5)
-set(gca,'FontSize', 12);
-xlabel('Time (seconds)', 'fontsize', 14);
-ylabel('Electrical Conductivity (Ohms^-1 cm^-1)','fontsize',14);
-title('Electrical Conductivity vs. Time')
+
+for i = selected_subs
+    plot(T, E_c(:, i), 'LineWidth', 1.5);
+end
+
+set(gca,'FontSize', 8);
+xlabel('Time (seconds)', 'fontsize', 12);
+ylabel('Electrical Conductivity (Ohms^-^1 cm^-^1)','fontsize', 12);
+title('Electrical Conductivity vs. Time', 'fontsize', 14)
+lgd = legend(arrayfun(@num2str, selected_subs, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
+title(lgd, 'Subsystem')
 
 exportgraphics(gca, 'Figures/4.png', 'ContentType', 'image');
 
@@ -162,7 +172,7 @@ echarge=1.60217663e-19;
 T_n=[];
 for j=1:max_T_index/100
     T_n_T=[];
-    for i=[1 5 10 11 15 20]
+    for i = total_subs
         temp_t_s=0;
         up=0;
         down=0;
@@ -181,15 +191,16 @@ for j=1:max_T_index/100
     T_n=[T_n; T_n_T];
 end
         
-plot(T,T_n(:,1),'k','LineWidth',2.5);
-plot(T,T_n(:,2),'g','LineWidth',2.5);
-plot(T,T_n(:,3),'b','LineWidth',2.5);
-plot(T,T_n(:,4),'r','LineWidth',2.5);
-plot(T,T_n(:,5),'c','LineWidth',2.5);
-plot(T,T_n(:,6),'m','LineWidth',2.5);
-xlabel('Time (seconds)','fontsize',14);
-ylabel('Seebeck coefficient','fontsize',14);
+for i = selected_subs
+    plot(T, T_n(:, i), 'LineWidth', 1.5);
+end
+
+set(gca,'FontSize', 8);
+xlabel('Time (seconds)','fontsize',12);
+ylabel('Seebeck coefficient','fontsize',12);
 title('Seebeck coefficient vs. Time','fontsize',14);
+lgd = legend(arrayfun(@num2str, selected_subs, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
+title(lgd, 'Subsystem')
 
 exportgraphics(gca, 'Figures/5.png', 'ContentType', 'image');
 
@@ -220,62 +231,64 @@ phonon_length=length(E_sys)/System_num;
 %% plot phonon results
 % plot phonon temperature, PRB Figure 3(a)
 figure('Visible', 'off'); hold on; grid;
+
 level_display = [];
 for i=[11 15 20]
        temp_T1= 1/kb./beta_T(:,(i-1)*System_length_ph+25);
     if i == 11
-        plot(T, temp_T1,'r','LineWidth',2.5);
+        plot(T, temp_T1,'r','LineWidth',1.5);
     elseif i == 15
-        plot(T,temp_T1,'c','LineWidth',2.5)
+        plot(T,temp_T1,'c','LineWidth',1.5)
     elseif i == 20
-        plot(T,temp_T1,'m','LineWidth',2.5)
+        plot(T,temp_T1,'m','LineWidth',1.5)
     end
 end
 for i=[1 5 10]
     temp_T1 = 1/kb./beta_T(:,(i-1)*System_length_ph+25);        %plot acoustic phonon
     if i == 1
-        plot(T, temp_T1,'k','LineWidth',2.5); 
+        plot(T, temp_T1,'k','LineWidth',1.5); 
     elseif i == 5
-        plot(T,temp_T1,'g','LineWidth',2.5)
+        plot(T,temp_T1,'g','LineWidth',1.5)
     elseif i==10
-        plot(T,temp_T1,'b','LineWidth',2.5)
+        plot(T,temp_T1,'b','LineWidth',1.5)
     end
 end
-set(gca, 'FontSize', 12);
-xlabel('Time (seconds)', 'fontsize', 14);
-ylabel('Phonon Temperature (K)', 'fontsize', 14)
-title('Phonon Temperature vs. Time')
-text(-5,500+(500-300)/20,'(a)','fontsize',16,'fontWeight','bold');
+
+set(gca, 'FontSize', 8);
+xlabel('Time (seconds)', 'fontsize', 12);
+ylabel('Phonon Temperature (K)', 'fontsize', 12)
+title('Phonon Temperature vs. Time', 'fontsize', 14)
 
 exportgraphics(gca, 'Figures/6.png', 'ContentType', 'image');
 
 % plot phonon energy evolution, PRB Figure 4(c)
 figure('Visible', 'off'); hold on; grid;
+
 for i=[1 5 10]
     temp_E = E_y_T(:,(i-1)*System_length_ph+1:(i)*System_length_ph);
     if i==1
-        plot(T,sum(temp_E,2),'k','LineWidth',2.5)
+        plot(T,sum(temp_E,2),'k','LineWidth',1.5)
     elseif i==5
-        plot(T,sum(temp_E,2),'g','LineWidth',2.5)
+        plot(T,sum(temp_E,2),'g','LineWidth',1.5)
     elseif i==10
-        plot(T,sum(temp_E,2),'b','LineWidth',2.5)
+        plot(T,sum(temp_E,2),'b','LineWidth',1.5)
     end
 end
 for i=[11 15 20]
     temp_E = E_y_T(:,(i-1)*System_length_ph+1:(i)*System_length_ph);
     if i==11
-        plot(T,sum(temp_E,2),'r','LineWidth',2.5)
+        plot(T,sum(temp_E,2),'r','LineWidth',1.5)
     elseif i==15
-        plot(T,sum(temp_E,2),'c','LineWidth',2.5)
+        plot(T,sum(temp_E,2),'c','LineWidth',1.5)
     elseif i==20
-        plot(T,sum(temp_E,2),'m','LineWidth',2.5)
+        plot(T,sum(temp_E,2),'m','LineWidth',1.5)
     end
 end
-set(gca, 'FontSize', 12);
-xlabel('Time (seconds)', 'fontsize', 14);
-ylabel('Phonon Energy (J)', 'fontsize', 14)
-title('Phonon Energy vs. Time')
-text(-5,90+(90-30)/20,'(c)','fontsize',16,'fontWeight','bold');
+
+set(gca, 'FontSize', 8);
+xlabel('Time (seconds)', 'fontsize', 12);
+ylabel('Phonon Energy (J)', 'fontsize', 12)
+title('Phonon Energy vs. Time', 'fontsize', 14)
 
 exportgraphics(gca, 'Figures/7.png', 'ContentType', 'image');
 
@@ -293,7 +306,7 @@ for j=1:max_T_index/100
     T_c_T = [];
     T_e_T = [];
     T_p_T = [];
-    for i=[1 5 10 11 15 20]
+    for i = total_subs
         temp_t_c=0;
         temp_e_c=0;
         for k=1:phonon_length-1
@@ -322,39 +335,41 @@ for j=1:max_T_index/100
     T_c=[T_c; T_c_T];
 end 
 
-plot(T,T_c(:,1),'k','LineWidth',2.5);
-plot(T,T_c(:,2),'g','LineWidth',2.5);
-plot(T,T_c(:,3),'b','LineWidth',2.5);
-plot(T,T_c(:,4),'r','LineWidth',2.5);
-plot(T,T_c(:,5),'c','LineWidth',2.5);
-plot(T,T_c(:,6),'m','LineWidth',2.5);
-set(gca,'FontSize',12);
-xlabel('Time (seconds)','fontsize',14);
-ylabel('Thermal Conductivity','fontsize',14);
+for i = selected_subs
+    plot(T, T_c(:, i), 'LineWidth', 1.5);
+end
+
+set(gca,'FontSize',8);
+xlabel('Time (seconds)','fontsize',12);
+ylabel('Thermal Conductivity','fontsize',12);
 title('Thermal Conductivity vs. Time','fontsize',14);
+lgd = legend(arrayfun(@num2str, selected_subs, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
+title(lgd, 'Subsystem')
 
 exportgraphics(gca, 'Figures/8.png', 'ContentType', 'image');
 
+%% ZT Factor
 figure('Visible', 'off'); hold on; grid;
 
 zt=[];
 for i=1:max_T_index/100
     zt_T=[];
-    for i=[1 2 3 4 5 6]
+    for i = total_subs
         zt_temp= E_c(j,i) * T_n(j,i)^2 * (T_e(j,i)) / T_c(j,i);
         zt_T=[zt_T zt_temp];
     end
     zt = [zt; zt_T];
 end
 
-plot(T,zt(:,1),'k','Linewidth',2.5);
-plot(T,zt(:,2),'g','Linewidth',2.5);
-plot(T,zt(:,3),'b','Linewidth',2.5);
-plot(T,zt(:,4),'r','Linewidth',2.5);
-plot(T,zt(:,5),'c','Linewidth',2.5);
-plot(T,zt(:,6),'m','Linewidth',2.5)
-xlabel("Time (seconds)",'fontsize',14);
-ylabel("ZT factor","fontsize",14)
+for i = selected_subs
+    plot(T, zt(:, i), 'LineWidth', 1.5);
+end
+
+set(gca,'FontSize',8);
+xlabel("Time (seconds)",'fontsize',12);
+ylabel("ZT factor","fontsize",12)
 title("ZT Factor vs. time",'fontsize',14)
+lgd = legend(arrayfun(@num2str, selected_subs, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
+title(lgd, 'Subsystem')
 
 exportgraphics(gca, 'Figures/9.png', 'ContentType', 'image');

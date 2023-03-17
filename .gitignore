@@ -2,6 +2,7 @@
 *.mlapp
 *.log
 *.json
+*.asv
 
 Input.txt
 input.txt

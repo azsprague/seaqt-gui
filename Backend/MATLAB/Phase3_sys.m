@@ -89,7 +89,14 @@ Activity_sys = [Activity_sys_e; Activity_sys_ph];       %assemble electron y and
 %% Run equation of motion of y
 tic;
 ts = 0;
-tf = 1000*min(tau);       %finishing time
+
+time_duration = gui_json_data.time_duration;
+time_type = gui_json_data.time_type;
+if time_type == 1
+    tf = time_duration * min(tau);
+elseif time_type == 2
+    tf = time_duration * max(tau);
+end
 
 [ts tf];
 options   = odeset('AbsTol',1e-7,'RelTol',1e-5);

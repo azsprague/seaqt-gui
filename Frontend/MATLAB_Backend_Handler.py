@@ -26,7 +26,6 @@ class MATLABBackendHandler():
         :return: True iff the SEAQT backend was successfully started; False otherwise
         '''
         self.matlab_engine.start_seaqt(nargout=0)
-        clear_matlab_meta()
         return True
 
     def reset_seaqt(self) -> bool:
@@ -36,6 +35,13 @@ class MATLABBackendHandler():
         :return: True iff the SEAQT backend was successfully reset; False otherwise
         '''
         return False
+    
+    def plot_only(self) -> bool:
+        '''
+        Run only the Phase 4 of the SEAQT code (plotting).
+        '''
+        self.matlab_engine.Phase4_plot(nargout=0)
+        return True
 
 
     def get_results(self) -> str:

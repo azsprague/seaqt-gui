@@ -73,13 +73,10 @@ class SEAQTGui():
     INPUT_PARAMETER_INNER_FRAME_PAD_Y = 5
     INPUT_BOTTOM_BUTTON_PAD_X = 5
 
-    DATA_VIEW_FRAME_WIDTH = 1000
+    DATA_VIEW_FRAME_WIDTH = 850
     DATA_VIEW_FRAME_HEIGHT = 700
     DATA_VIEW_FRAME_PAD_X = 5
     DATA_VIEW_FRAME_PAD_Y = 25
-
-    TIMER_FRAME_WIDTH = 105
-    TIMER_FRAME_HEIGHT = 60
 
     MENU_FRAME_PAD_X = 10
     MENU_FRAME_PAD_Y = 10
@@ -87,15 +84,16 @@ class SEAQTGui():
     MENU_BUTTON_PAD_X = 5
     MENU_BUTTON_PAD_Y = 15
 
-    PLOT_BUTTON_PAD_Y = 9
+    PLOT_BUTTON_PAD_Y = 3
 
     DEFAULT_FERMI = 6
     DEFAULT_VELOCITIES = 6000
     DEFAULT_RELAXATION = 50 * (10**-12)
-    DEFAULT_SUBSYSTEMS = 12
+    DEFAULT_NUM_SUBSYSTEMS = 20
     DEFAULT_SUBS_SIZE = 1 * (10**-7)
-    DEFAULT_SUBS_TEMPS = '295, 295, 295, 295, 295, 295, 300, 300, 300, 300, 300, 300'
-    DEFAULT_TIME = 20
+    DEFAULT_SUBS_TEMPS = '295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300'
+    DEFAULT_TIME_DURATION = 100
+    DEFAULT_TIME_TYPE = 1
 
     PARAM_PREFERENCES_FILE_NAME = 'seaqt_prefs.json'
 
@@ -104,38 +102,53 @@ class SEAQTGui():
         '''
         Class constructor; create a SEAQTGui object, instantiate global variables, and start the main menu.
         '''
+        # Initialize the backend handler
+        self.backend = MATLABBackendHandler(self.PARAM_PREFERENCES_FILE_NAME)
+
         # Create the Tkinter root window
         self.tkinter_root = Tk()
         self.tkinter_root.title('SEAQT GUI')
         self.tkinter_root.resizable(False, False)
 
-        # Class ('global') variables
+        # Data input files (class variables)
         self.electron_ev_file_path = StringVar(self.tkinter_root)
         self.electron_dos_file_path = StringVar(self.tkinter_root)
         self.phonon_ev_file_path = StringVar(self.tkinter_root)
         self.phonon_dos_file_path = StringVar(self.tkinter_root)
         
+        # Runtime parameters (class variables)
         self.fermi_energy = DoubleVar(self.tkinter_root, self.DEFAULT_FERMI)                        # eV * 1.60218 * (10**-19) Joules
         self.phonon_group_velocities = DoubleVar(self.tkinter_root, self.DEFAULT_VELOCITIES)        # m/s
         self.phonon_relaxation_time = DoubleVar(self.tkinter_root, self.DEFAULT_RELAXATION)         # seconds
-        self.number_of_subsystems = IntVar(self.tkinter_root, self.DEFAULT_SUBSYSTEMS)              # amount
+        self.number_of_subsystems = IntVar(self.tkinter_root, self.DEFAULT_NUM_SUBSYSTEMS)          # amount
+        self.selected_subsystems = []                                                               # list of scalars
         self.subsystems_size = DoubleVar(self.tkinter_root, self.DEFAULT_SUBS_SIZE)                 # meters
         self.subsystem_temperatures_string = StringVar(self.tkinter_root, self.DEFAULT_SUBS_TEMPS)  # Kelvin    
-        self.subsystem_temperatures_list = []                                                       # Kelvin
-        self.time = DoubleVar(self.tkinter_root, self.DEFAULT_TIME)                                 # ??? (TODO)
+        self.subsystem_temperatures_list = []                                                       # list of Kelvin
+        self.time_duration = DoubleVar(self.tkinter_root, self.DEFAULT_TIME_DURATION)               # scalar
+        self.selected_time_type = DoubleVar(self.tkinter_root, self.DEFAULT_TIME_TYPE)              # 'min'
 
+        self.input_json_dict = {}
+
+        # Menu buttons (class variables)
         self.load_button = None
         self.start_button = None
         self.reset_button = None
         self.save_button = None
+        self.export_button = None
 
+        # Plot radio buttons (class variables)
         self.plot_radio_buttons = []
         self.selected_plot = None
         self.data_frame_image_frame = None
         self.data_frame_image = None
 
         self.time_radio_buttons = []
-        self.selected_time_type = None
+        
+        # Subsystem checkbuttons (class variables)
+        self.subsystem_variables = []
+        self.subsystem_checkbuttons = []
+        self.replot_button = None
 
         # Run the GUI
         self.activate_main_window()
@@ -144,45 +157,20 @@ class SEAQTGui():
 
     def activate_main_window(self) -> None:
         '''
-        Create the 'main menu' of the GUI, including the data view, timer, and menu buttons.
+        Create the 'main menu' of the GUI, including the data view, plot, and menu buttons.
         '''
         #############################
         # Start frame for menu view #
         #############################
 
-        # Create outer menu frame
-        outer_menu_frame = ttk.Frame(
-            self.tkinter_root,
-            padding=10
-        )
-        outer_menu_frame.grid(column=0, row=0, padx=self.MENU_FRAME_PAD_X, sticky=N)
-
-        # Create timer frame
-        timer_frame = ttk.LabelFrame(
-            outer_menu_frame,
-            text='Time Remaining',
-            width=self.TIMER_FRAME_WIDTH,
-            height=self.TIMER_FRAME_HEIGHT,
-            padding=10,
-            relief=SOLID
-        )
-        timer_frame.grid(column=0, row=0, pady=self.MENU_FRAME_PAD_Y)
-        timer_frame.grid_propagate(False)
-
-        # Timer label
-        ttk.Label(
-            timer_frame,
-            text='00:00:00'
-        ).place(relx=0.5, rely=0.5, anchor=CENTER)
-
         # Create menu option frame
         menu_option_frame = ttk.LabelFrame(
-            outer_menu_frame,
+            self.tkinter_root,
             text='Menu',
             padding=10,
             relief=SOLID
         )
-        menu_option_frame.grid(column=0, row=1, pady=self.MENU_FRAME_PAD_Y)
+        menu_option_frame.grid(column=0, row=0, padx=self.MENU_FRAME_PAD_X, pady=self.DATA_VIEW_FRAME_PAD_Y, sticky=N)
 
         # Load data button
         self.load_button = ttk.Button(
@@ -223,13 +211,31 @@ class SEAQTGui():
         )
         self.save_button.grid(column=0, row=3, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
+        # Export graphs button
+        self.export_button = ttk.Button(
+            menu_option_frame,
+            text='Export',
+            command=self.export_data,
+            state=DISABLED,
+            width=self.MENU_BUTTON_WIDTH
+        )
+        self.export_button.grid(column=0, row=4, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+
         # Help button
         ttk.Button(
             menu_option_frame,
             text='Help',
             command=self.activate_help_window,
             width=self.MENU_BUTTON_WIDTH
-        ).grid(column=0, row=4, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        ).grid(column=0, row=5, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+
+        # Exit Button
+        ttk.Button(
+            menu_option_frame,
+            text='Exit',
+            command=self.exit_button,
+            width=self.MENU_BUTTON_WIDTH
+        ).grid(column=0, row=6, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
         # Copyright
         ttk.Label(
@@ -237,18 +243,29 @@ class SEAQTGui():
             text='© 2023'
         ).grid(column=1, row=1)
 
+        ###############################
+        # Start frame for Right Panel #
+        ###############################
+
+        # Create right panel
+        right_menu_frame = ttk.Frame(
+            self.tkinter_root,
+            padding=10
+        )
+        right_menu_frame.grid(column=2, row=0, padx=20, pady=self.DATA_VIEW_FRAME_PAD_Y, sticky=N)
+
         #################################
         # Start frame for Radio Buttons #
         #################################
 
         # Create radio button frame
         radio_button_frame = ttk.LabelFrame(
-            self.tkinter_root,
-            text='Plot',
+            right_menu_frame,
+            text='Select Plot',
             padding=10,
             relief=SOLID
         )
-        radio_button_frame.grid(column=2, row=0, padx=20, pady=20, sticky=N)
+        radio_button_frame.grid(column=0, row=0, pady=5)
 
         # Variable to store button choice
         self.selected_plot = IntVar(radio_button_frame, PlotNumber.ELECTRON_TEMPERATURE.value)
@@ -360,6 +377,51 @@ class SEAQTGui():
         )
         rb9.grid(column=0, row=8, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
         self.plot_radio_buttons.append(rb9)
+
+        #######################################
+        # Start frame for subsystem selection #
+        #######################################
+
+        # Create subsystem selection frame
+        subsystem_selection_frame = ttk.LabelFrame(
+            right_menu_frame,
+            text='Select Subsystem(s)',
+            padding=10,
+            relief=SOLID
+        )
+        subsystem_selection_frame.grid(column=0, row=1, pady=5)
+
+        # Frame to hold the checkboxes
+        checkbox_frame = ttk.Frame(
+            subsystem_selection_frame
+        )
+        checkbox_frame.grid(column=0, row=0, sticky=N)
+
+        # Create a subsystem button for the number of selected subsystems
+        num_subsystems = self.number_of_subsystems.get()
+        for i in range(num_subsystems):
+            subsystem_variable = IntVar(checkbox_frame, 0)
+            self.subsystem_variables.append(subsystem_variable)
+
+            check_btn = ttk.Checkbutton(
+                checkbox_frame,
+                text=f'{i + 1}',
+                variable=subsystem_variable,
+                onvalue=1,
+                offvalue=0,
+                state=DISABLED
+            )
+            check_btn.grid(column=(i // (num_subsystems // 2)) % 2, row=i % (num_subsystems // 2), padx=17, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+            self.subsystem_checkbuttons.append(check_btn)
+
+        # Button to replot given selected systems
+        self.replot_button = ttk.Button(
+            subsystem_selection_frame,
+            text='Replot',
+            command=self.replot,
+            state=DISABLED
+        )
+        self.replot_button.grid(column=0, row=1, pady=5, sticky=N)
 
         #############################
         # Start frame for data view #
@@ -613,18 +675,18 @@ class SEAQTGui():
 
         ttk.Entry(
             time_selection_frame,
-            textvariable=self.time,
+            textvariable=self.time_duration,
             width=15
         ).grid(column=1, row=0)
 
         # Variable to store button choice
-        self.selected_time_choice = IntVar(time_selection_frame, TimeType.MIN.value)
+        self.selected_time_type = IntVar(time_selection_frame, TimeType.MIN.value)
 
         # Radio button for min time
         rb1 = ttk.Radiobutton(
             time_selection_frame,
             text='Min(tau)',
-            variable=self.selected_time_choice,
+            variable=self.selected_time_type,
             value=TimeType.MIN.value
         )
         rb1.grid(column=0, row=1, padx=5, pady=5)
@@ -634,7 +696,7 @@ class SEAQTGui():
         rb2 = ttk.Radiobutton(
             time_selection_frame,
             text='Max(tau)',
-            variable=self.selected_time_choice,
+            variable=self.selected_time_type,
             value=TimeType.MAX.value
         )
         rb2.grid(column=1, row=1, padx=5, pady=5)
@@ -671,7 +733,7 @@ class SEAQTGui():
         Load the existing prefs file to speed up runtime.
         '''
         if not os.path.isfile(self.PARAM_PREFERENCES_FILE_NAME):
-            self.pop_up_error('No Previous Run Data Found')
+            self.pop_up_error('Could Not Import Prefs; No Previous Run Data Found')
             return
 
         with open(self.PARAM_PREFERENCES_FILE_NAME, 'r') as prefs_file:
@@ -681,77 +743,104 @@ class SEAQTGui():
                 self.pop_up_error('Could Not Import Prefs; File Corrupted / Modified')
                 return
 
-            throw_error = False
+            failed_imports = []
 
             e_ev_path = prefs_json_dict.get('e_ev_path')
             if e_ev_path and isinstance(e_ev_path, str):
                 self.electron_ev_file_path.set(e_ev_path)
             else:
-                throw_error = True
+                failed_imports.append('Electron EV Path')
 
             e_dos_path = prefs_json_dict.get('e_dos_path')
             if e_dos_path and isinstance(e_dos_path, str):
                 self.electron_dos_file_path.set(e_dos_path)
             else:
-                throw_error = True
+                failed_imports.append('Electron DOS Path')
 
             p_ev_path = prefs_json_dict.get('p_ev_path')
             if p_ev_path and isinstance(p_ev_path, str):
                 self.phonon_ev_file_path.set(p_ev_path)
             else:
-                throw_error = True
+                failed_imports.append('Phonon EV Path')
 
             p_dos_path = prefs_json_dict.get('p_dos_path')
             if p_dos_path and isinstance(p_dos_path, str):
                 self.phonon_dos_file_path.set(p_dos_path)
             else:
-                throw_error = True
+                failed_imports.append('Phonon DOS Path')
 
             fermi_energy = prefs_json_dict.get('fermi_energy')
             if fermi_energy and isinstance(fermi_energy, float):
                 self.fermi_energy.set(fermi_energy)
             else:
-                throw_error = True
+                failed_imports.append('Fermi Energy')
 
             velocities = prefs_json_dict.get('velocities')
             if velocities and isinstance(velocities, float):
                 self.phonon_group_velocities.set(velocities)
             else:
-                throw_error = True
+                failed_imports.append('Velocities')
 
             relaxation = prefs_json_dict.get('relaxation')
             if relaxation and isinstance(relaxation, float):
                 self.phonon_relaxation_time.set(relaxation)
             else:
-                throw_error = True
+                failed_imports.append('Relaxation Period')
 
             subsystems = prefs_json_dict.get('subsystems')
             if subsystems and isinstance(subsystems, int):
                 self.number_of_subsystems.set(subsystems)
             else:
-                throw_error = True
+                failed_imports.append('Number of Subsystems')
 
             sub_size = prefs_json_dict.get('sub_size')
             if sub_size and isinstance(sub_size, float):
                 self.subsystems_size.set(sub_size)
             else:
-                throw_error = True
+                failed_imports.append('Subsystems Size')
 
             temps = prefs_json_dict.get('temps')
             if temps and isinstance(temps, list):
                 self.subsystem_temperatures_string.set(', '.join(temps))
                 self.subsystem_temperatures_list = temps
             else:
-                throw_error = True
+                failed_imports.append('Temperatures')
 
-            time = prefs_json_dict.get('time')
+            time = prefs_json_dict.get('time_duration')
             if time and isinstance(time, float):
-                self.time.set(time)
+                self.time_duration.set(time)
             else:
-                throw_error = True
+                failed_imports.append('Time Duration')
 
-            if throw_error:
-                self.pop_up_error('Error Importing One or More Preferences.')
+            num_failed = len(failed_imports)
+            if num_failed > 0:
+                self.pop_up_error(f"Failed to Import {num_failed} Preference{'s' if num_failed > 1 else ''}:\n\n{', '.join(failed_imports)}")
+
+
+    def replot(self) -> bool:
+        '''
+        Replot with the new selected subsystems.
+
+        :return: True iff the plot was successful; false otherwise
+        '''
+        # Tally the selected subsystems
+        self.selected_subsystems = []
+        for i in range(len(self.subsystem_variables)):
+            if self.subsystem_variables[i].get():
+                self.selected_subsystems.append(i)
+
+        if len(self.selected_subsystems) == 0:
+            self.pop_up_error('No Subsystem(s) Selected. Please Choose at Least One.')
+            return False
+        
+        self.input_json_dict['selected_subs'] = self.selected_subsystems
+
+        # Write the JSON object to the prefs file
+        with open(self.PARAM_PREFERENCES_FILE_NAME, 'w') as prefs_file:
+            json.dump(self.input_json_dict, prefs_file)
+
+        # Replot
+        return self.backend.plot_only()
 
 
     def select_file(self, filetypes: Tuple[Tuple[str, str]], global_file_path: StringVar) -> None:
@@ -785,9 +874,11 @@ class SEAQTGui():
         self.phonon_group_velocities.set(self.DEFAULT_VELOCITIES)
         self.phonon_relaxation_time.set(self.DEFAULT_RELAXATION)
         self.subsystems_size.set(self.DEFAULT_SUBS_SIZE)
-        self.number_of_subsystems.set(self.DEFAULT_SUBSYSTEMS)
+        self.number_of_subsystems.set(self.DEFAULT_NUM_SUBSYSTEMS)
+        self.selected_subsystems = []
         self.subsystem_temperatures_string.set(self.DEFAULT_SUBS_TEMPS)
-        self.time.set(self.DEFAULT_TIME)
+        self.time_duration.set(self.DEFAULT_TIME_DURATION)
+        self.selected_time_type.set(self.DEFAULT_TIME_TYPE)
 
         # Give back input control and close the window
         window.grab_release()
@@ -811,7 +902,7 @@ class SEAQTGui():
                 not self.subsystems_size.get() or
                 not self.number_of_subsystems.get() or
                 not self.subsystem_temperatures_string.get() or
-                not self.time.get()):
+                not self.time_duration.get()):
 
             self.pop_up_error('Please Complete All Fields')
             return
@@ -837,29 +928,14 @@ class SEAQTGui():
             self.pop_up_error('Number of Subsystems Does Not Match Number of Supplied Temperatures')
             return
 
-        # Aggregate the input data into a JSON object
-        input_json_dict = {}
-        input_json_dict['e_ev_path'] = self.electron_ev_file_path.get()
-        input_json_dict['e_dos_path'] = self.electron_dos_file_path.get()
-        input_json_dict['p_ev_path'] = self.phonon_ev_file_path.get()
-        input_json_dict['p_dos_path'] = self.phonon_dos_file_path.get()
-        input_json_dict['fermi_energy'] = self.fermi_energy.get()
-        input_json_dict['velocities'] = self.phonon_group_velocities.get()
-        input_json_dict['relaxation'] = self.phonon_relaxation_time.get()
-        input_json_dict['subsystems'] = self.number_of_subsystems.get()
-        input_json_dict['sub_size'] = self.subsystems_size.get()
-        input_json_dict['temps'] = self.subsystem_temperatures_list
-        input_json_dict['time_duration'] = self.time.get()
-        input_json_dict['time_type'] = self.selected_time_type.get()
-
-        # Write the JSON object to the prefs file
-        with open(self.PARAM_PREFERENCES_FILE_NAME, 'w') as prefs_file:
-            json.dump(input_json_dict, prefs_file)
-
         # Unlock the start and reset buttons, and disable the load button
         self.start_button['state'] = NORMAL
         self.reset_button['state'] = NORMAL
         self.load_button['state'] = DISABLED
+
+        # Unlock the subsystem checkbuttons
+        for chk in self.subsystem_checkbuttons:
+            chk['state'] = NORMAL
 
         # Update data window image
         self.update_plot(PlotNumber.DATA_NOT_RUN.value)
@@ -896,12 +972,39 @@ class SEAQTGui():
         '''
         Run the SEAQT backend using the desired handler.
         '''
+        # Tally the selected subsystems
+        for i in range(len(self.subsystem_variables)):
+            if self.subsystem_variables[i].get():
+                self.selected_subsystems.append(i)
+
+        if len(self.selected_subsystems) == 0:
+            self.pop_up_error('No Subsystem(s) Selected. Please Choose at Least One.')
+            return
+
+        # Aggregate the input data into a JSON object
+        self.input_json_dict['e_ev_path'] = self.electron_ev_file_path.get()
+        self.input_json_dict['e_dos_path'] = self.electron_dos_file_path.get()
+        self.input_json_dict['p_ev_path'] = self.phonon_ev_file_path.get()
+        self.input_json_dict['p_dos_path'] = self.phonon_dos_file_path.get()
+        self.input_json_dict['fermi_energy'] = self.fermi_energy.get()
+        self.input_json_dict['velocities'] = self.phonon_group_velocities.get()
+        self.input_json_dict['relaxation'] = self.phonon_relaxation_time.get()
+        self.input_json_dict['subsystems'] = self.number_of_subsystems.get()
+        self.input_json_dict['sub_size'] = self.subsystems_size.get()
+        self.input_json_dict['temps'] = self.subsystem_temperatures_list
+        self.input_json_dict['time_duration'] = self.time_duration.get()
+        self.input_json_dict['time_type'] = self.selected_time_type.get()
+        self.input_json_dict['selected_subs'] = self.selected_subsystems
+
+        # Write the JSON object to the prefs file
+        with open(self.PARAM_PREFERENCES_FILE_NAME, 'w') as prefs_file:
+            json.dump(self.input_json_dict, prefs_file)
+
         # Start the backend
-        backend = MATLABBackendHandler(self.PARAM_PREFERENCES_FILE_NAME)
-        backend.start_seaqt()
+        self.backend.start_seaqt()
 
         # Wait for the results
-        backend.get_results()
+        self.backend.get_results()
 
         # Block the start button
         self.start_button['state'] = DISABLED
@@ -912,6 +1015,9 @@ class SEAQTGui():
 
         # Display the first plot
         self.update_plot(self.selected_plot.get())
+
+        # Unlock replot button
+        self.replot_button['state'] = NORMAL
 
 
     def reset_data_process(self) -> None:
@@ -925,6 +1031,7 @@ class SEAQTGui():
 
         # If user selects 'YES', reset all values
         if user_choice:
+
             # Reset file paths
             self.electron_ev_file_path.set('')
             self.electron_dos_file_path.set('')
@@ -935,11 +1042,13 @@ class SEAQTGui():
             self.fermi_energy.set(self.DEFAULT_FERMI)
             self.phonon_group_velocities.set(self.DEFAULT_VELOCITIES)
             self.phonon_relaxation_time.set(self.DEFAULT_RELAXATION)
-            self.number_of_subsystems.set(self.DEFAULT_SUBSYSTEMS)
+            self.number_of_subsystems.set(self.DEFAULT_NUM_SUBSYSTEMS)
+            self.selected_subsystems = []
             self.subsystems_size.set(self.DEFAULT_SUBS_SIZE)
             self.subsystem_temperatures_string.set(self.DEFAULT_SUBS_TEMPS)
             self.subsystem_temperatures_list = []
-            self.time.set(self.DEFAULT_TIME)   
+            self.time_duration.set(self.DEFAULT_TIME_DURATION)
+            self.selected_time_type.set(self.DEFAULT_TIME_TYPE)   
 
             # Enable load button, disable start, reset, and save buttons
             self.load_button['state'] = NORMAL
@@ -951,6 +1060,11 @@ class SEAQTGui():
             self.selected_plot.set(PlotNumber.ELECTRON_TEMPERATURE.value)
             for btn in self.plot_radio_buttons:
                 btn['state'] = DISABLED
+
+            # Disable checkbuttons and replot button
+            self.replot_button['state'] = DISABLED
+            for chk in self.subsystem_checkbuttons:
+                chk['state'] = DISABLED
 
             # Remove any old plots
             clear_plots()
@@ -966,11 +1080,33 @@ class SEAQTGui():
         self.feature_not_implemented_error()
 
 
+    def export_data(self) -> None:
+        '''
+        TODO
+        '''
+        self.feature_not_implemented_error()
+
+
     def activate_help_window(self) -> None:
         '''
         Inform the user to post a ticket to the github (for now). Eventually, should show FAQ.
         '''
         self.pop_up_error('Please visit https://github.com/azsprague/seaqt-gui for more info on the system.\n\nIf you have an issue or find a bug, view or open a ticket at https://github.com/azsprague/seaqt-gui/issues. \n\nI am a solo developer and will do my best to handle issues as they arise. Thank You!')
+
+
+    def exit_button(self) -> None:
+        '''
+        Ask the user if they are sure, then exit.
+        '''
+        user_choice = messagebox.askyesno(
+            title='WARNING',
+            message='Are you sure you want to exit? Any unsaved data will be lost.'
+        )
+
+        if user_choice:
+            self.tkinter_root.destroy()
+        else:
+            return
 
     
     def feature_not_implemented_error(self) -> None:
