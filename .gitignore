@@ -9,6 +9,7 @@ input.txt
 
 .idea
 __pycache__/
+tmp/
 
 [0-9].png
 Figures/[0-9].png

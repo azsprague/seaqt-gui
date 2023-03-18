@@ -27,6 +27,6 @@ lz = 1e-2;
 Vol = lx * ly * lz;     % units of m^3 
 
 % Import data from GUI
-gui_json_data = jsondecode(fileread('seaqt_prefs.json'));
+gui_json_data = jsondecode(fileread('tmp/seaqt_prefs.json'));
 
-save System_description.mat;
+save tmp/System_description.mat;

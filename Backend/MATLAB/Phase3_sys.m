@@ -1,9 +1,9 @@
 function Phase3_sys()
 
 clear all;
-load System_description.mat;
-load Phonon.mat;
-load Electron.mat;
+load tmp/System_description.mat;
+load tmp/Phonon.mat;
+load tmp/Electron.mat;
 
 global System_num;
 System_num = 20;                %local system number
@@ -101,4 +101,4 @@ end
 [ts tf];
 options   = odeset('AbsTol',1e-7,'RelTol',1e-5);
 [T,y_T] = ode45(@CSEA_Sys_single_y_ph_e,[ts tf],Activity_sys,options);%run equation of motion of y, PRB Eq.20
-save ('Time_Evolution.mat', '-v7.3');% y_T T tau dNdE_sys E_sys System_length_ph System_num;
+save ('tmp/Time_Evolution.mat', '-v7.3');% y_T T tau dNdE_sys E_sys System_length_ph System_num;

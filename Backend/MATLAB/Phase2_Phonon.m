@@ -2,7 +2,7 @@ function Phase2_Phonon()
 
 %% Generate Phonon Eigenstates and Relaxation Time
 clear all;
-load System_description.mat;
+load tmp/System_description.mat;
 
 %Read in seperate Phonon DOS spreadsheets
 E_sys = table2array(readtable(gui_json_data.p_ev_path));
@@ -22,4 +22,4 @@ end
 dNdE_sys_ph_single=dNdE_sys_ph_single.';
 E_sys_ph_single=E_sys_ph_single.';
 tau_ph_single=tau_ph_single.';
-save Phonon.mat E_sys_ph_single dNdE_sys_ph_single tau_ph_single;
+save tmp/Phonon.mat E_sys_ph_single dNdE_sys_ph_single tau_ph_single;

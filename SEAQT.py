@@ -11,7 +11,7 @@ if __name__ == '__main__':
     clear_plots()
     clear_matlab_meta()
 
-    # Parse command-line arguments (none yet. TODO: pipeline?)
+    # Parse command-line arguments (none yet. TODO: pipeline, verbose, select backend)
     parser = argparse.ArgumentParser(description='Run SEAQT code with GUI.')
     args = parser.parse_args()
 

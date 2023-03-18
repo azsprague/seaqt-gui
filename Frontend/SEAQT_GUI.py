@@ -9,6 +9,7 @@ from tkinter import ttk
 from tkinter import filedialog as fd
 from tkinter import messagebox
 from PIL import Image, ImageTk
+from zipfile import ZipFile
 
 from Frontend.MATLAB_Backend_Handler import MATLABBackendHandler
 from Frontend.Utils import clear_plots
@@ -58,6 +59,16 @@ class SEAQTGui():
 
     LOAD_LAST_RUN_BUTTON_WIDTH = 50
 
+    SEAQT_RUN_FILETYPE = (
+        ('SEAQT Run Archive', '*.seaqt'),
+    )
+
+    SEAQT_RUN_FILENAMES = [
+        'Time_Evolution.mat',
+        'System_description.mat',
+        'seaqt_prefs.json'
+    ]
+
     INPUT_FRAME_PAD_X = 15
     INPUT_FRAME_PAD_Y = 7
     INPUT_DATA_BUTTON_WIDTH = 10
@@ -95,6 +106,7 @@ class SEAQTGui():
     DEFAULT_TIME_DURATION = 100
     DEFAULT_TIME_TYPE = 1
 
+    TEMP_DIRECTORY_PATH = 'tmp'
     PARAM_PREFERENCES_FILE_NAME = 'seaqt_prefs.json'
 
 
@@ -103,7 +115,8 @@ class SEAQTGui():
         Class constructor; create a SEAQTGui object, instantiate global variables, and start the main menu.
         '''
         # Initialize the backend handler
-        self.backend = MATLABBackendHandler(self.PARAM_PREFERENCES_FILE_NAME)
+        prefs_file_path = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
+        self.backend = MATLABBackendHandler(prefs_file_path)
 
         # Create the Tkinter root window
         self.tkinter_root = Tk()
@@ -131,8 +144,8 @@ class SEAQTGui():
         self.input_json_dict = {}
 
         # Menu buttons (class variables)
-        self.load_button = None
-        self.start_button = None
+        self.new_run_button = None
+        self.load_run_button = None
         self.reset_button = None
         self.save_button = None
         self.export_button = None
@@ -148,7 +161,7 @@ class SEAQTGui():
         # Subsystem checkbuttons (class variables)
         self.subsystem_variables = []
         self.subsystem_checkbuttons = []
-        self.replot_button = None
+        self.plot_button = None
 
         # Run the GUI
         self.activate_main_window()
@@ -172,24 +185,23 @@ class SEAQTGui():
         )
         menu_option_frame.grid(column=0, row=0, padx=self.MENU_FRAME_PAD_X, pady=self.DATA_VIEW_FRAME_PAD_Y, sticky=N)
 
-        # Load data button
-        self.load_button = ttk.Button(
+        # New run button
+        self.new_run_button = ttk.Button(
             menu_option_frame,
-            text='Load',
+            text='New',
             command=self.activate_input_data_window,
             width=self.MENU_BUTTON_WIDTH
         )
-        self.load_button.grid(column=0, row=0, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        self.new_run_button.grid(column=0, row=0, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
-        # Start run button
-        self.start_button = ttk.Button(
+        # Load run button
+        self.load_run_button = ttk.Button(
             menu_option_frame,
-            text='Start',
-            command=self.start_data_process,
-            state=DISABLED,
+            text='Load',
+            command=self.load_previous_run,
             width=self.MENU_BUTTON_WIDTH
         )
-        self.start_button.grid(column=0, row=1, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
+        self.load_run_button.grid(column=0, row=1, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
         # Reset run button
         self.reset_button = ttk.Button(
@@ -252,7 +264,7 @@ class SEAQTGui():
             self.tkinter_root,
             padding=10
         )
-        right_menu_frame.grid(column=2, row=0, padx=20, pady=self.DATA_VIEW_FRAME_PAD_Y, sticky=N)
+        right_menu_frame.grid(column=2, row=0, padx=10, pady=15, sticky=N)
 
         #################################
         # Start frame for Radio Buttons #
@@ -415,25 +427,28 @@ class SEAQTGui():
             self.subsystem_checkbuttons.append(check_btn)
 
         # Button to replot given selected systems
-        self.replot_button = ttk.Button(
+        self.plot_button = ttk.Button(
             subsystem_selection_frame,
-            text='Replot',
+            text='Plot',
             command=self.replot,
             state=DISABLED
         )
-        self.replot_button.grid(column=0, row=1, pady=5, sticky=N)
+        self.plot_button.grid(column=0, row=1, pady=5, sticky=N)
 
         #############################
         # Start frame for data view #
         #############################
 
         # Create data view frame
+        s = ttk.Style()
+        s.configure('white.TFrame', background='white')
         data_view_frame = ttk.Frame(
             self.tkinter_root,
             padding=10,
             width=self.DATA_VIEW_FRAME_WIDTH,
             height=self.DATA_VIEW_FRAME_HEIGHT,
-            relief=SOLID
+            relief=SOLID,
+            style='white.TFrame'
         )
         data_view_frame.grid(column=1, row=0, padx=self.DATA_VIEW_FRAME_PAD_X, pady=self.DATA_VIEW_FRAME_PAD_Y, sticky=N)
         data_view_frame.grid_propagate(False)
@@ -441,8 +456,7 @@ class SEAQTGui():
         # Create data image (default "no data loaded")
         self.data_frame_image_frame = ttk.Label(
             data_view_frame,
-            justify=CENTER,
-            padding=10
+            justify=CENTER
         )
         self.data_frame_image_frame.place(relx=0.5, rely=0.5, anchor=CENTER)
         self.update_plot(PlotNumber.DATA_NOT_LOADED.value)
@@ -461,13 +475,14 @@ class SEAQTGui():
         input_window.grid_columnconfigure(1, weight=1)
 
         # Give users the option to load preferences from last run
+        prefs_file_name = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
         ttk.Button(
             input_window,
             text='Import Settings From Last Run',
-            command=self.load_last_run,
-            state=NORMAL if os.path.isfile(self.PARAM_PREFERENCES_FILE_NAME) else DISABLED,
+            command=self.import_settings_from_last_run,
+            state=NORMAL if os.path.isfile(prefs_file_name) else DISABLED,
             width=self.LOAD_LAST_RUN_BUTTON_WIDTH
-        ).grid(column=0, row=0, padx=5, pady=10)
+        ).grid(column=0, row=0, padx=5, pady=15)
 
         ###############################
         # Start frame for file inputs #
@@ -480,7 +495,7 @@ class SEAQTGui():
             padding=10, 
             relief=SOLID
         )
-        file_input_frame.grid(column=0, row=1, padx=self.INPUT_FRAME_PAD_X, pady=self.INPUT_FRAME_PAD_Y)
+        file_input_frame.grid(column=0, row=1, padx=self.INPUT_FRAME_PAD_X)
 
         # Select electron ev file (label, entry, button)
         ttk.Label(
@@ -718,25 +733,26 @@ class SEAQTGui():
             data_input_button_frame,
             text='Cancel',
             command=partial(self.cancel_data_input, input_window)
-        ).grid(column=0, row=0, padx=self.INPUT_BOTTOM_BUTTON_PAD_X)
-
-        # Confirm button (all fields must be filled to confirm)
-        ttk.Button(
-            data_input_button_frame, 
-            text='Confirm', 
-            command=partial(self.confirm_data_input, input_window)
         ).grid(column=1, row=0, padx=self.INPUT_BOTTOM_BUTTON_PAD_X)
 
+        # Run button (all fields must be filled to confirm)
+        ttk.Button(
+            data_input_button_frame, 
+            text='Run', 
+            command=partial(self.confirm_data_input_and_run, input_window)
+        ).grid(column=0, row=0, padx=self.INPUT_BOTTOM_BUTTON_PAD_X)
 
-    def load_last_run(self) -> None:
+
+    def import_settings_from_last_run(self) -> None:
         '''
         Load the existing prefs file to speed up runtime.
         '''
-        if not os.path.isfile(self.PARAM_PREFERENCES_FILE_NAME):
+        prefs_file_path = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
+        if not os.path.isfile(prefs_file_path):
             self.pop_up_error('Could Not Import Prefs; No Previous Run Data Found')
             return
 
-        with open(self.PARAM_PREFERENCES_FILE_NAME, 'r') as prefs_file:
+        with open(prefs_file_path, 'r') as prefs_file:
             try:
                 prefs_json_dict = json.load(prefs_file)
             except:
@@ -817,6 +833,41 @@ class SEAQTGui():
                 self.pop_up_error(f"Failed to Import {num_failed} Preference{'s' if num_failed > 1 else ''}:\n\n{', '.join(failed_imports)}")
 
 
+    def load_previous_run(self) -> None:
+        '''
+        Have the user select a previous run file to load into memory.
+        '''
+        # Have the user select a file
+        archive_file_path = StringVar()
+        self.select_file(self.SEAQT_RUN_FILETYPE, archive_file_path)
+
+        # If no file was selected, return
+        if not archive_file_path or not archive_file_path.get() or archive_file_path.get() == '':
+            self.pop_up_error('No Archive File Selected')
+            return
+        
+        # Unpack and check the files
+        try:
+            with ZipFile(archive_file_path.get(), 'r') as zf:
+                for filename in self.SEAQT_RUN_FILENAMES:
+                    zf.extract(filename, self.TEMP_DIRECTORY_PATH)
+        except Exception as e:
+            self.pop_up_error('Failed to unpack SEAQT archive; data may be missing or corrupt.')
+            print(e)
+            return    
+
+        # Disable new and load buttons, enable reset, save, and plot buttons
+        self.new_run_button['state'] = DISABLED
+        self.load_run_button['state'] = DISABLED
+        self.reset_button['state'] = NORMAL
+        self.save_button['state'] = NORMAL
+        self.plot_button['state'] = NORMAL
+
+        # Unlock the subsystem checkbuttons
+        for chk in self.subsystem_checkbuttons:
+            chk['state'] = NORMAL
+
+
     def replot(self) -> bool:
         '''
         Replot with the new selected subsystems.
@@ -840,7 +891,16 @@ class SEAQTGui():
             json.dump(self.input_json_dict, prefs_file)
 
         # Replot
-        return self.backend.plot_only()
+        if self.backend.generate_plot():
+            self.update_plot(self.selected_plot.get())
+
+            # Unlock radio buttons for plot selection
+            for btn in self.plot_radio_buttons:
+                btn['state'] = NORMAL
+
+            return True
+
+        return False
 
 
     def select_file(self, filetypes: Tuple[Tuple[str, str]], global_file_path: StringVar) -> None:
@@ -885,7 +945,7 @@ class SEAQTGui():
         window.destroy()
 
 
-    def confirm_data_input(self, window: Toplevel) -> None:
+    def confirm_data_input_and_run(self, window: Toplevel) -> None:
         '''
         Ensures all data fields are filled out and the data is formatted correctly.
 
@@ -928,21 +988,15 @@ class SEAQTGui():
             self.pop_up_error('Number of Subsystems Does Not Match Number of Supplied Temperatures')
             return
 
-        # Unlock the start and reset buttons, and disable the load button
-        self.start_button['state'] = NORMAL
-        self.reset_button['state'] = NORMAL
-        self.load_button['state'] = DISABLED
-
-        # Unlock the subsystem checkbuttons
-        for chk in self.subsystem_checkbuttons:
-            chk['state'] = NORMAL
-
         # Update data window image
         self.update_plot(PlotNumber.DATA_NOT_RUN.value)
 
         # Give back input control and close the window
         window.grab_release()
         window.destroy()
+
+        # Run the SEAQT backend
+        self.start_data_process()
 
     
     def update_plot(self, filenum: int) -> None:
@@ -955,6 +1009,9 @@ class SEAQTGui():
             # Open the desired image
             loaded_image = Image.open(f'Figures/{filenum}.png')
             self.data_frame_image = ImageTk.PhotoImage(loaded_image)
+
+            if filenum > 0 and filenum < 10:
+                self.export_button['state'] = NORMAL
         except:
             try:
                 # An error occurred; try to open the error image
@@ -972,15 +1029,6 @@ class SEAQTGui():
         '''
         Run the SEAQT backend using the desired handler.
         '''
-        # Tally the selected subsystems
-        for i in range(len(self.subsystem_variables)):
-            if self.subsystem_variables[i].get():
-                self.selected_subsystems.append(i)
-
-        if len(self.selected_subsystems) == 0:
-            self.pop_up_error('No Subsystem(s) Selected. Please Choose at Least One.')
-            return
-
         # Aggregate the input data into a JSON object
         self.input_json_dict['e_ev_path'] = self.electron_ev_file_path.get()
         self.input_json_dict['e_dos_path'] = self.electron_dos_file_path.get()
@@ -997,27 +1045,25 @@ class SEAQTGui():
         self.input_json_dict['selected_subs'] = self.selected_subsystems
 
         # Write the JSON object to the prefs file
-        with open(self.PARAM_PREFERENCES_FILE_NAME, 'w') as prefs_file:
+        prefs_file_path = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
+        with open(prefs_file_path, 'w') as prefs_file:
             json.dump(self.input_json_dict, prefs_file)
 
-        # Start the backend
-        self.backend.start_seaqt()
+        # Run the backend (NOTE: blocking)
+        self.backend.run_seaqt()
 
-        # Wait for the results
-        self.backend.get_results()
+        # Block the new and load buttons
+        self.new_run_button['state'] = DISABLED
+        self.load_run_button['state'] = DISABLED
 
-        # Block the start button
-        self.start_button['state'] = DISABLED
+        # Unlock replot, reset, and save buttons
+        self.plot_button['state'] = NORMAL
+        self.reset_button['state'] = NORMAL
+        self.save_button['state'] = NORMAL
 
-        # Unlock radio buttons for plot selection
-        for btn in self.plot_radio_buttons:
-            btn['state'] = NORMAL
-
-        # Display the first plot
-        self.update_plot(self.selected_plot.get())
-
-        # Unlock replot button
-        self.replot_button['state'] = NORMAL
+        # Unlock the subsystem checkbuttons
+        for chk in self.subsystem_checkbuttons:
+            chk['state'] = NORMAL
 
 
     def reset_data_process(self) -> None:
@@ -1050,11 +1096,12 @@ class SEAQTGui():
             self.time_duration.set(self.DEFAULT_TIME_DURATION)
             self.selected_time_type.set(self.DEFAULT_TIME_TYPE)   
 
-            # Enable load button, disable start, reset, and save buttons
-            self.load_button['state'] = NORMAL
-            self.start_button['state'] = DISABLED
+            # Enable new and load buttons, disable reset, save, and export buttons
+            self.new_run_button['state'] = NORMAL
+            self.load_run_button['state'] = NORMAL
             self.reset_button['state'] = DISABLED
             self.save_button['state'] = DISABLED
+            self.export_button['state'] = DISABLED
 
             # Disable all radio buttons and reset the selected one to default
             self.selected_plot.set(PlotNumber.ELECTRON_TEMPERATURE.value)
@@ -1062,7 +1109,7 @@ class SEAQTGui():
                 btn['state'] = DISABLED
 
             # Disable checkbuttons and replot button
-            self.replot_button['state'] = DISABLED
+            self.plot_button['state'] = DISABLED
             for chk in self.subsystem_checkbuttons:
                 chk['state'] = DISABLED
 
@@ -1075,10 +1122,35 @@ class SEAQTGui():
 
     def save_data(self) -> None:
         '''
-        TODO
+        Save the run data (.mat files and .json file) to be used for later plotting.
         '''
-        self.feature_not_implemented_error()
+        # Have the user select a filename to save as
+        filename = fd.asksaveasfilename(
+            title='Save SEAQT Data',
+            defaultextension='.seaqt',
+            filetypes=self.SEAQT_RUN_FILETYPE,
+            confirmoverwrite=True
+        )
 
+        # If no file was selected, return
+        if not filename or filename == '':
+            self.pop_up_error('No Archive File Selected')
+            return
+        
+        # Create the archive file and save
+        temp_dir = os.path.join(os.getcwd(), self.TEMP_DIRECTORY_PATH)
+        try:
+            with ZipFile(filename, 'w') as zf:
+                for filename in self.SEAQT_RUN_FILENAMES:
+                    zf.write(os.path.join(temp_dir, filename), filename)
+        except Exception as e:
+            self.pop_up_error('Failed to create SEAQT archive')
+            print(e)
+            return
+        
+        # Inform the user the data has been saved
+        self.pop_up_info('SEAQT Run Saved Successfully.')
+        
 
     def export_data(self) -> None:
         '''
@@ -1134,4 +1206,16 @@ class SEAQTGui():
         messagebox.showerror(
             title='ERROR',
             message=error_message
+        )
+
+
+    def pop_up_info(self, info_message: str) -> None:
+        '''
+        Create a pop-up info dialog containing the supplied message.
+
+        :param message: The message to present the user
+        '''
+        messagebox.showinfo(
+            title='INFO',
+            message=info_message
         )

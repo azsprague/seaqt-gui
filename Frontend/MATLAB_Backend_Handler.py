@@ -19,7 +19,7 @@ class MATLABBackendHandler():
         self.matlab_engine.addpath('Backend/MATLAB')
 
 
-    def start_seaqt(self) -> bool:
+    def run_seaqt(self) -> bool:
         '''
         Start the SEAQT backend process(es).
 
@@ -27,27 +27,11 @@ class MATLABBackendHandler():
         '''
         self.matlab_engine.start_seaqt(nargout=0)
         return True
-
-    def reset_seaqt(self) -> bool:
-        '''
-        Reset the SEAQT backend process(es).
-
-        :return: True iff the SEAQT backend was successfully reset; False otherwise
-        '''
-        return False
     
-    def plot_only(self) -> bool:
+
+    def generate_plot(self) -> bool:
         '''
         Run only the Phase 4 of the SEAQT code (plotting).
         '''
         self.matlab_engine.Phase4_plot(nargout=0)
         return True
-
-
-    def get_results(self) -> str:
-        '''
-        Retrieve the results from the SEAQT backend process(es).
-
-        :return: The filename (str) of the SEAQT backend output
-        '''
-        return False

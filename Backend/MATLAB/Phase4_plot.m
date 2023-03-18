@@ -1,10 +1,10 @@
 function Phase4_plot()
 
 clear all;
-load System_description.mat;
+load tmp/System_description.mat;
 
 %% prepare electron results
-load Time_Evolution.mat;                                    % load solution of equation of motion
+load tmp/Time_Evolution.mat;                                    % load solution of equation of motion
 max_T_index=floor(length(T)/100)*100;
 T = T(1:100:max_T_index);                                   % Time
 y_T = y_T(1:100:max_T_index,1:System_length_e*System_num);  % solution of equation of motion
@@ -33,7 +33,7 @@ electron_N_y_T = N_y_T;
 electron_length = length(E_sys) / System_num;
 
 % Re-import JSON file in case of changes / subsequent runs
-gui_json_data = jsondecode(fileread('seaqt_prefs.json'));
+gui_json_data = jsondecode(fileread('tmp/seaqt_prefs.json'));
 
 % Extract the total and selected subsystems
 total_subs = 1:gui_json_data.subsystems;
@@ -205,7 +205,7 @@ title(lgd, 'Subsystem')
 exportgraphics(gca, 'Figures/5.png', 'ContentType', 'image');
 
 %% prepare phonon results
-load Time_Evolution.mat;
+load tmp/Time_Evolution.mat;
 
 T = T(1:100:max_T_index);
 y_T = y_T(1:100:max_T_index,System_length_e*System_num+1:System_length*System_num);

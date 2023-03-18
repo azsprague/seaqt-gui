@@ -2,7 +2,7 @@ function Phase2_electron()
 
 %% Generate Electron Eigenstates and Relaxation Time
 clear all;
-load System_description.mat;
+load tmp/System_description.mat;
 
 % Read in seperate electron DOS spreadsheets
 E_sys = table2array(readtable(gui_json_data.e_ev_path));
@@ -32,4 +32,4 @@ E_sys_e_single = E_sys_e_single.';
 dNdE_sys_e_single = dNdE_sys_e_single.';
 tau_e_single=tau_e_single.';
 
-save Electron.mat E_sys_e_single dNdE_sys_e_single tau_e_single;
+save tmp/Electron.mat E_sys_e_single dNdE_sys_e_single tau_e_single;
