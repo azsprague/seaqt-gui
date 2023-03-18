@@ -115,8 +115,8 @@ class SEAQTGui():
         Class constructor; create a SEAQTGui object, instantiate global variables, and start the main menu.
         '''
         # Initialize the backend handler
-        prefs_file_path = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
-        self.backend = MATLABBackendHandler(prefs_file_path)
+        self.prefs_file_path = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
+        self.backend = MATLABBackendHandler(self.prefs_file_path)
 
         # Create the Tkinter root window
         self.tkinter_root = Tk()
@@ -475,12 +475,11 @@ class SEAQTGui():
         input_window.grid_columnconfigure(1, weight=1)
 
         # Give users the option to load preferences from last run
-        prefs_file_name = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
         ttk.Button(
             input_window,
             text='Import Settings From Last Run',
             command=self.import_settings_from_last_run,
-            state=NORMAL if os.path.isfile(prefs_file_name) else DISABLED,
+            state=NORMAL if os.path.isfile(self.prefs_file_path) else DISABLED,
             width=self.LOAD_LAST_RUN_BUTTON_WIDTH
         ).grid(column=0, row=0, padx=5, pady=15)
 
@@ -747,12 +746,11 @@ class SEAQTGui():
         '''
         Load the existing prefs file to speed up runtime.
         '''
-        prefs_file_path = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
-        if not os.path.isfile(prefs_file_path):
+        if not os.path.isfile(self.prefs_file_path):
             self.pop_up_error('Could Not Import Prefs; No Previous Run Data Found')
             return
 
-        with open(prefs_file_path, 'r') as prefs_file:
+        with open(self.prefs_file_path, 'r') as prefs_file:
             try:
                 prefs_json_dict = json.load(prefs_file)
             except:
@@ -851,10 +849,31 @@ class SEAQTGui():
             with ZipFile(archive_file_path.get(), 'r') as zf:
                 for filename in self.SEAQT_RUN_FILENAMES:
                     zf.extract(filename, self.TEMP_DIRECTORY_PATH)
-        except Exception as e:
+        except:
             self.pop_up_error('Failed to unpack SEAQT archive; data may be missing or corrupt.')
-            print(e)
             return    
+        
+        # Copy all values from JSON file to class vairables
+        try:
+            with open(self.prefs_file_path, 'r') as prefs_file:
+                prefs_json = json.load(prefs_file)
+                
+                self.input_json_dict['e_ev_path'] = prefs_json['e_ev_path']
+                self.input_json_dict['e_dos_path'] = prefs_json['e_dos_path']
+                self.input_json_dict['p_ev_path'] = prefs_json['p_ev_path']
+                self.input_json_dict['p_dos_path'] = prefs_json['p_dos_path']
+                self.input_json_dict['fermi_energy'] = prefs_json['fermi_energy']
+                self.input_json_dict['velocities'] = prefs_json['velocities']
+                self.input_json_dict['relaxation'] = prefs_json['relaxation']
+                self.input_json_dict['subsystems'] = prefs_json['subsystems']
+                self.input_json_dict['sub_size'] = prefs_json['sub_size']
+                self.input_json_dict['temps'] = prefs_json['temps']
+                self.input_json_dict['time_duration'] = prefs_json['time_duration']
+                self.input_json_dict['time_type'] = prefs_json['time_type']
+                self.input_json_dict['selected_subs'] = prefs_json['selected_subs']
+        except:
+            self.pop_up_error('Failed to read parameters from preferences file; data may be missing or corrupted.')
+            return
 
         # Disable new and load buttons, enable reset, save, and plot buttons
         self.new_run_button['state'] = DISABLED
@@ -887,8 +906,12 @@ class SEAQTGui():
         self.input_json_dict['selected_subs'] = self.selected_subsystems
 
         # Write the JSON object to the prefs file
-        with open(self.PARAM_PREFERENCES_FILE_NAME, 'w') as prefs_file:
-            json.dump(self.input_json_dict, prefs_file)
+        try:
+            with open(self.prefs_file_path, 'w') as prefs_file:
+                json.dump(self.input_json_dict, prefs_file)
+        except:
+            self.pop_up_error('Failed to modify preferences file; data may be missing or corrupted.')
+            return False
 
         # Replot
         if self.backend.generate_plot():
@@ -1045,8 +1068,7 @@ class SEAQTGui():
         self.input_json_dict['selected_subs'] = self.selected_subsystems
 
         # Write the JSON object to the prefs file
-        prefs_file_path = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
-        with open(prefs_file_path, 'w') as prefs_file:
+        with open(self.prefs_file_path, 'w') as prefs_file:
             json.dump(self.input_json_dict, prefs_file)
 
         # Run the backend (NOTE: blocking)
@@ -1163,7 +1185,7 @@ class SEAQTGui():
         '''
         Inform the user to post a ticket to the github (for now). Eventually, should show FAQ.
         '''
-        self.pop_up_error('Please visit https://github.com/azsprague/seaqt-gui for more info on the system.\n\nIf you have an issue or find a bug, view or open a ticket at https://github.com/azsprague/seaqt-gui/issues. \n\nI am a solo developer and will do my best to handle issues as they arise. Thank You!')
+        self.pop_up_info('Please visit https://github.com/azsprague/seaqt-gui for more info on the system.\n\nIf you have an issue or find a bug, view or open a ticket at https://github.com/azsprague/seaqt-gui/issues. \n\nI am a solo developer and will do my best to handle issues as they arise. Thank You!')
 
 
     def exit_button(self) -> None:

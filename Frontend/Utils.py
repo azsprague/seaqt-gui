@@ -17,7 +17,7 @@ def clear_matlab_meta():
     '''
     Erase any files leftover from MATLAB run(s).
     '''
-    for mat in glob.glob('*.mat'):
+    for mat in glob.glob('tmp/*.mat'):
         try:
             os.remove(mat)
         except:
