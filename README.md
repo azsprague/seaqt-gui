@@ -20,7 +20,7 @@ Clone the repository using the following command:
 ```
 git clone https://github.com/azsprague/seaqt-gui
 ```
-Install the latest versions on git [here](https://git-scm.com/downloads).
+Install the latest versions of git [here](https://git-scm.com/downloads).
 
 
 #### Verify Python Version
