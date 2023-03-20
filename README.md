@@ -6,12 +6,14 @@ Further discussion can be found in `Introduction.pdf`.
 
 ---
 
+
 ### Changelog
 | Version |   Date   |        Notes       |
 | :-----: | :------: | :----------------: |
 |   1.0   | 03.23.23 | First Full Release |
 
 ---
+
 
 ### Run SEAQT GUI from Source
 
@@ -36,6 +38,7 @@ Install required python packages using the following command:
 ```
 pip install -r requirements.txt
 ```
+
 
 #### Install MATLAB Engine for Python
 To use SEAQT GUI with the MATLAB backend, you must first install the MATLAB engine for Python:

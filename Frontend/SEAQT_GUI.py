@@ -2,6 +2,8 @@ import json
 import os
 
 from enum import IntEnum
+from shutil import copyfile
+import time
 from typing import Tuple
 from functools import partial
 from tkinter import *
@@ -111,6 +113,18 @@ class SEAQTGui():
     TEMP_DIRECTORY_PATH = 'tmp'
     PARAM_PREFERENCES_FILE_NAME = 'seaqt_prefs.json'
 
+    PLOT_NAMES = [
+        'Electron Temperature',
+        'Electron Number',
+        'Electron Energy',
+        'Electrical Conductivity',
+        'Seebeck Coefficient',
+        'Phonon Tempertaure',
+        'Phonon Energy',
+        'Thermal Conductivity',
+        'ZT Factor'
+    ]
+
 
     def __init__(self):
         '''
@@ -134,6 +148,9 @@ class SEAQTGui():
         self.electron_dos_file_path = StringVar(self.tkinter_root)
         self.phonon_ev_file_path = StringVar(self.tkinter_root)
         self.phonon_dos_file_path = StringVar(self.tkinter_root)
+
+        # Data output directory (class variable)
+        self.export_directory = StringVar(self.tkinter_root)
         
         # Runtime parameters (class variables)
         self.fermi_energy = DoubleVar(self.tkinter_root, self.DEFAULT_FERMI)                        # eV * 1.60218 * (10**-19) Joules
@@ -168,6 +185,11 @@ class SEAQTGui():
         self.subsystem_variables = []
         self.subsystem_checkbuttons = []
         self.plot_button = None
+
+        # Export variables
+        self.plot_variables = []
+        self.plot_checkbuttons = []
+        self.selected_plots = []
 
         # Run the GUI
         self.activate_main_window()
@@ -288,113 +310,17 @@ class SEAQTGui():
         # Variable to store button choice
         self.selected_plot = IntVar(radio_button_frame, PlotNumber.ELECTRON_TEMPERATURE.value)
 
-        # Radio button for electron temperature vs time
-        rb1 = ttk.Radiobutton(
-            radio_button_frame,
-            text='Electron Temperature',
-            variable=self.selected_plot,
-            value=PlotNumber.ELECTRON_TEMPERATURE.value,
-            command=partial(self.update_plot, PlotNumber.ELECTRON_TEMPERATURE.value),
-            state=DISABLED
-        )
-        rb1.grid(column=0, row=0, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.plot_radio_buttons.append(rb1)
-
-        # Radio button for electron number vs time
-        rb2 = ttk.Radiobutton(
-            radio_button_frame,
-            text='Electron Number',
-            variable=self.selected_plot,
-            value=PlotNumber.ELECTRON_NUMBER.value,
-            command=partial(self.update_plot, PlotNumber.ELECTRON_NUMBER.value),
-            state=DISABLED
-        )
-        rb2.grid(column=0, row=1, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.plot_radio_buttons.append(rb2)
-
-        # Radio button for electron energy vs time
-        rb3 = ttk.Radiobutton(
-            radio_button_frame,
-            text='Electron Energy',
-            variable=self.selected_plot,
-            value=PlotNumber.ELECTRON_ENERGY.value,
-            command=partial(self.update_plot, PlotNumber.ELECTRON_ENERGY.value),
-            state=DISABLED
-        )
-        rb3.grid(column=0, row=2, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.plot_radio_buttons.append(rb3)
-
-        # Radio button for electrical conductivity vs time
-        rb4 = ttk.Radiobutton(
-            radio_button_frame,
-            text='Electrical Conductivity',
-            variable=self.selected_plot,
-            value=PlotNumber.ELECTRICAL_CONDUCTIVITY.value,
-            command=partial(self.update_plot, PlotNumber.ELECTRICAL_CONDUCTIVITY.value),
-            state=DISABLED
-        )
-        rb4.grid(column=0, row=3, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.plot_radio_buttons.append(rb4)
-
-        # Radio button for seebeck coefficient vs time
-        rb5 = ttk.Radiobutton(
-            radio_button_frame,
-            text='Seebeck Coefficient',
-            variable=self.selected_plot,
-            value=PlotNumber.SEEBECK_COEFFICIENT.value,
-            command=partial(self.update_plot, PlotNumber.SEEBECK_COEFFICIENT.value),
-            state=DISABLED
-        )
-        rb5.grid(column=0, row=4, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.plot_radio_buttons.append(rb5)
-
-        # Radio button for phonon temperature vs time
-        rb6 = ttk.Radiobutton(
-            radio_button_frame,
-            text='Phonon Temperature',
-            variable=self.selected_plot,
-            value=PlotNumber.PHONON_TEMPERATURE.value,
-            command=partial(self.update_plot, PlotNumber.PHONON_TEMPERATURE.value),
-            state=DISABLED
-        )
-        rb6.grid(column=0, row=5, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.plot_radio_buttons.append(rb6)
-
-        # Radio button for phonon energy vs time
-        rb7 = ttk.Radiobutton(
-            radio_button_frame,
-            text='Phonon Energy',
-            variable=self.selected_plot,
-            value=PlotNumber.PHONON_ENERGY.value,
-            command=partial(self.update_plot, PlotNumber.PHONON_ENERGY.value),
-            state=DISABLED
-        )
-        rb7.grid(column=0, row=6, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.plot_radio_buttons.append(rb7)
-
-        # Radio button for thermal conductivity vs time
-        rb8 = ttk.Radiobutton(
-            radio_button_frame,
-            text='Thermal Conductivity',
-            variable=self.selected_plot,
-            value=PlotNumber.THERMAL_CONDUCTIVITY.value,
-            command=partial(self.update_plot, PlotNumber.THERMAL_CONDUCTIVITY.value),
-            state=DISABLED
-        )
-        rb8.grid(column=0, row=7, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.plot_radio_buttons.append(rb8)
-
-        # Radio button for ZT factor vs time
-        rb9 = ttk.Radiobutton(
-            radio_button_frame,
-            text='ZT Factor',
-            variable=self.selected_plot,
-            value=PlotNumber.ZT_FACTOR.value,
-            command=partial(self.update_plot, PlotNumber.ZT_FACTOR.value),
-            state=DISABLED
-        )
-        rb9.grid(column=0, row=8, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-        self.plot_radio_buttons.append(rb9)
+        for i in range(len(self.PLOT_NAMES)):
+            rb = ttk.Radiobutton(
+                radio_button_frame,
+                text=self.PLOT_NAMES[i],
+                variable=self.selected_plot,
+                value=i + 1,
+                command=partial(self.update_plot, i + 1),
+                state=DISABLED
+            )
+            rb.grid(column=0, row=i, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+            self.plot_radio_buttons.append(rb)
 
         #######################################
         # Start frame for subsystem selection #
@@ -896,61 +822,6 @@ class SEAQTGui():
         self.update_plot(PlotNumber.DATA_LOADED_SUCCESSFULLY.value)
 
 
-    def replot(self) -> bool:
-        '''
-        Replot with the new selected subsystems.
-
-        :return: True iff the plot was successful; false otherwise
-        '''
-        # Tally the selected subsystems
-        self.selected_subsystems = []
-        for i in range(len(self.subsystem_variables)):
-            if self.subsystem_variables[i].get():
-                self.selected_subsystems.append(i)
-
-        if len(self.selected_subsystems) == 0:
-            self.pop_up_error('No Subsystem(s) Selected. Please Choose at Least One.')
-            return False
-        
-        self.input_json_dict['selected_subs'] = self.selected_subsystems
-
-        # Write the JSON object to the prefs file
-        try:
-            with open(self.prefs_file_path, 'w') as prefs_file:
-                json.dump(self.input_json_dict, prefs_file)
-        except:
-            self.pop_up_error('Failed to modify preferences file; data may be missing or corrupted.')
-            return False
-
-        # Replot
-        try:
-            self.backend.generate_plot()
-            self.update_plot(self.selected_plot.get())
-        except:
-            self.pop_up_error('SEAQT Backend Encountered an Error.\n\nThis could be due to faulty input data or parameters; or due to an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
-            return False
-
-        # Unlock radio buttons for plot selection
-        for btn in self.plot_radio_buttons:
-            btn['state'] = NORMAL
-
-        return True
-
-
-    def select_file(self, filetypes: Tuple[Tuple[str, str]], global_file_path: StringVar) -> None:
-        '''
-        Open a filesystem window to allow the user to choose a file.
-
-        :param filetypes: A tuple of tuples containing (description, filetype)'s, e.g., ('text files', '*.txt')
-        :param global_file_path: StringVar to contain the chosen file path
-        '''
-        filename = fd.askopenfilename(
-            title='Select a File',
-            filetypes=filetypes
-        )
-        global_file_path.set(filename)
-
-    
     def cancel_data_input(self, window: Toplevel) -> None:
         '''
         Resets all data fields and then closes the window.
@@ -1103,6 +974,47 @@ class SEAQTGui():
             chk['state'] = NORMAL
 
 
+    def replot(self) -> bool:
+        '''
+        Replot with the new selected subsystems.
+
+        :return: True iff the plot was successful; false otherwise
+        '''
+        # Tally the selected subsystems
+        self.selected_subsystems = []
+        for i in range(len(self.subsystem_variables)):
+            if self.subsystem_variables[i].get():
+                self.selected_subsystems.append(i)
+
+        if len(self.selected_subsystems) == 0:
+            self.pop_up_error('No Subsystem(s) Selected. Please Choose at Least One.')
+            return False
+        
+        self.input_json_dict['selected_subs'] = self.selected_subsystems
+
+        # Write the JSON object to the prefs file
+        try:
+            with open(self.prefs_file_path, 'w') as prefs_file:
+                json.dump(self.input_json_dict, prefs_file)
+        except:
+            self.pop_up_error('Failed to modify preferences file; data may be missing or corrupted.')
+            return False
+
+        # Replot
+        try:
+            self.backend.generate_plot()
+            self.update_plot(self.selected_plot.get())
+        except:
+            self.pop_up_error('SEAQT Backend Encountered an Error.\n\nThis could be due to faulty input data or parameters; or due to an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
+            return False
+
+        # Unlock radio buttons for plot selection
+        for btn in self.plot_radio_buttons:
+            btn['state'] = NORMAL
+
+        return True
+
+
     def reset_data_process(self) -> None:
         '''
         Resets all stored / calculated data.
@@ -1191,9 +1103,146 @@ class SEAQTGui():
 
     def export_data(self) -> None:
         '''
-        TODO
+        Allow the user to export the generated plots.
         '''
-        self.feature_not_implemented_error()
+        export_window = Toplevel(self.tkinter_root)
+        export_window.title('Export Generated Plots')
+        export_window.resizable(False, False)
+        export_window.grab_set()
+
+        ###################################
+        # Start frame for directory input #
+        ###################################
+        directory_frame = ttk.LabelFrame(
+            export_window,
+            text='Destination',
+            padding=10
+        )
+        directory_frame.grid(column=0, row=0, padx=10, pady=5)
+
+        ttk.Label(
+            directory_frame,
+            text='Destination Folder',
+            padding=10
+        ).grid(column=0, row=0)
+
+        ttk.Entry(
+            directory_frame,
+            textvariable=self.export_directory,
+            width=45
+        ).grid(column=1, row=0)
+
+        ttk.Button(
+            directory_frame,
+            text='Browse',
+            command=partial(self.select_directory, self.export_directory),
+            width=self.INPUT_DATA_BUTTON_WIDTH
+        ).grid(column=2, row=0, padx=5)
+
+        #################################
+        # Start frame for options input #
+        #################################
+
+        # Create frame for plot selection
+        plot_select_frame = ttk.LabelFrame(
+            export_window,
+            text='Select Plot(s) to Export',
+            padding=15
+        )
+        plot_select_frame.grid(column=0, row=1, padx=5, pady=5)
+
+        # Create checkbuttons for each plot
+        num_of_plots = len(self.PLOT_NAMES)
+        for i in range(num_of_plots):
+            plot_variable = IntVar(plot_select_frame, 0)
+            self.plot_variables.append(plot_variable)
+
+            check_btn = ttk.Checkbutton(
+                plot_select_frame,
+                text=self.PLOT_NAMES[i],
+                variable=plot_variable,
+                onvalue=1,
+                offvalue=0
+            )
+            check_btn.grid(column=(i // (num_of_plots // 3)) % 3, row=i % (num_of_plots // 3), padx=7, pady=5, sticky=W)
+            self.plot_checkbuttons.append(check_btn)
+
+        ##################################
+        # Start frame for bottom buttons #
+        ##################################
+        button_frame = ttk.Frame(
+            export_window,
+            padding=10
+        )
+        button_frame.grid(column=0, row=2, padx=5, pady=5)
+
+        ttk.Button(
+            button_frame,
+            text='Export',
+            command=partial(self.confirm_data_export, export_window)
+        ).grid(column=0, row=0, padx=5)
+
+        ttk.Button(
+            button_frame,
+            text='Cancel',
+            command=partial(self.cancel_data_export, export_window)
+        ).grid(column=1, row=0, padx=5)
+
+
+    def confirm_data_export(self, export_window: Toplevel) -> None:
+        '''
+        Confirm all data export parameters, then save plots.
+
+        :param export_window: Toplevel object to destroy upon confirming
+        '''
+        # Ensure destination path has been set
+        if not self.export_directory or not self.export_directory.get() or self.export_directory.get() == '':
+            self.pop_up_error('No Destination Directory Specified. Please Select One.')
+            return
+
+        # Tally the selected plots
+        self.selected_plots = []
+        for i in range(len(self.PLOT_NAMES)):
+            if self.plot_variables[i].get():
+                self.selected_plots.append(i)
+
+        num_selected_plots = len(self.selected_plots)
+        if num_selected_plots == 0:
+            self.pop_up_error('No Plot(s) Selected. Please Choose at Least One.')
+            return
+
+        curr_time = time.time()
+        failed_plots = []
+        for plot_number in self.selected_plots:
+            try:
+                copyfile(f'Figures/{plot_number + 1}.png', os.path.join(self.export_directory.get(), f'{self.PLOT_NAMES[plot_number]}_{curr_time}.png'))
+            except Exception as e:
+                print(e)
+                failed_plots.append(plot_number)
+
+        num_failed_plots = len(failed_plots)
+        if num_failed_plots > 0:
+            self.pop_up_error(f"Failed to save {num_failed_plots} plot{'s' if num_failed_plots > 1 else ''}\n\nData may be missing or corrupted, or there may be an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.")
+            return
+
+        # Release control and close the window
+        self.pop_up_info(f"{num_selected_plots} plot{'s' if num_selected_plots > 1 else ''} successfully saved.")
+        export_window.grab_release()
+        export_window.destroy()
+
+
+    def cancel_data_export(self, export_window: Toplevel) -> None:
+        '''
+        Cancel and reset all data export parameters, then close the window.
+
+        :param export_window: Toplevel object to destroy upon cancelling
+        '''
+        # Reset choices
+        self.export_directory.set('')
+
+        # Release control and close the winow
+        export_window.grab_release()
+        export_window.destroy()
 
 
     def activate_help_window(self) -> None:
@@ -1212,10 +1261,37 @@ class SEAQTGui():
             message='Are you sure you want to exit? Any unsaved data will be lost.'
         )
 
+        # If the user chooses "yes", destroy the main window (closing the program)
         if user_choice:
             self.tkinter_root.destroy()
         else:
             return
+        
+
+    def select_file(self, filetypes: Tuple[Tuple[str, str]], global_file_path: StringVar) -> None:
+        '''
+        Open a filesystem window to allow the user to choose a file.
+
+        :param filetypes: A tuple of tuples containing (description, filetype)'s, e.g., ('text files', '*.txt')
+        :param global_file_path: StringVar to contain the chosen file path
+        '''
+        filename = fd.askopenfilename(
+            title='Select a File',
+            filetypes=filetypes
+        )
+        global_file_path.set(filename)
+
+
+    def select_directory(self, global_directory_path: StringVar) -> None:
+        '''
+        Open a filesystem window to allow the user to choose a directory.
+
+        :param global_directory_path: StringVar to contain the chosen directory path
+        '''
+        directory = fd.askdirectory(
+            title='Select a Directory / Folder'
+        )
+        global_directory_path.set(directory)
 
     
     def feature_not_implemented_error(self) -> None:
