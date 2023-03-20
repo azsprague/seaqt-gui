@@ -2,6 +2,11 @@
 
 SEAQT framework/code provides a general thermodynamically rigorous determination of the equation of motion for nonequilibrium system state evolution. Utilizing the development of hypoequilibrium states and the density of state method for electrons and phonons, SEAQT can be applied from a practical standpoint at all temporal and spatial scales. This allows for a comprehensive evaluation of material properties (electrical conductivity, thermal conductivity, etc.) that current alternative methods cannot fully address.
 
+### Changelog
+| Version |   Date   |        Notes       |
+| :-----: | :------: | :----------------: |
+|   1.0   | 03.23.23 | First Full Release |
+
 
 ### Run SEAQT GUI from Source
 
