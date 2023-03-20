@@ -1,13 +1,17 @@
 ## Steepest Entropy Ascent Quantum Thermodynamics (SEAQT) Graphical User Interface (GUI)
 
-The SEAQT GUI is a tool designed to ...
+SEAQT framework/code provides a general thermodynamically rigorous determination of the equation of motion for nonequilibrium system state evolution. Utilizing the development of hypoequilibrium states and the density of state method for electrons and phonons, SEAQT can be applied from a practical standpoint at all temporal and spatial scales. This allows for a comprehensive evaluation of material properties (electrical conductivity, thermal conductivity, etc.) that current alternative methods cannot fully address.
+
 
 ### Run SEAQT GUI from Source
 
 #### Download via GitHub
+Clone the repository using the following command:
 ```
 git clone https://github.com/azsprague/seaqt-gui
 ```
+Install the latest versions on git [here](https://git-scm.com/downloads).
+
 
 #### Python Version
 Python >= 3.6 is required. You can check your python version using the following command:
@@ -15,6 +19,7 @@ Python >= 3.6 is required. You can check your python version using the following
 python --version
 ```
 Install the latest versions of python [here](https://www.python.org/downloads/).
+
 
 #### Install Dependencies
 Install required python packages using the following command:
@@ -35,6 +40,7 @@ cd "\path\to\matlab\root\extern\engines\python"
 python setup.py install
 ```
 Official installation instructions from MATLAB can be found [here](https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html).
+
 
 #### Usage
 The following command will start a standard interactive session:

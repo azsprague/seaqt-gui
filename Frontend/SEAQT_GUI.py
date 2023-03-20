@@ -31,7 +31,9 @@ class PlotNumber(IntEnum):
     THERMAL_CONDUCTIVITY = 8,
     ZT_FACTOR = 9,
     DATA_NOT_LOADED = 400,
-    DATA_NOT_RUN = 410,
+    DATA_PROCESSING = 401,
+    DATA_PROCESSED_SUCCESSFULLY = 402,
+    DATA_LOADED_SUCCESSFULLY = 403,
     ERROR = 999
 
 
@@ -115,8 +117,12 @@ class SEAQTGui():
         Class constructor; create a SEAQTGui object, instantiate global variables, and start the main menu.
         '''
         # Initialize the backend handler
-        self.prefs_file_path = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
-        self.backend = MATLABBackendHandler(self.prefs_file_path)
+        try:
+            self.prefs_file_path = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
+            self.backend = MATLABBackendHandler(self.prefs_file_path)
+        except:
+            self.pop_up_error('SEAQT Backend Encountered an Error.\n\nThis is likely due to a faulty or corrupted installation, but could also be an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
+            return
 
         # Create the Tkinter root window
         self.tkinter_root = Tk()
@@ -886,6 +892,9 @@ class SEAQTGui():
         for chk in self.subsystem_checkbuttons:
             chk['state'] = NORMAL
 
+        # Update plot image
+        self.update_plot(PlotNumber.DATA_LOADED_SUCCESSFULLY.value)
+
 
     def replot(self) -> bool:
         '''
@@ -914,16 +923,18 @@ class SEAQTGui():
             return False
 
         # Replot
-        if self.backend.generate_plot():
+        try:
+            self.backend.generate_plot()
             self.update_plot(self.selected_plot.get())
+        except:
+            self.pop_up_error('SEAQT Backend Encountered an Error.\n\nThis could be due to faulty input data or parameters; or due to an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
+            return False
 
-            # Unlock radio buttons for plot selection
-            for btn in self.plot_radio_buttons:
-                btn['state'] = NORMAL
+        # Unlock radio buttons for plot selection
+        for btn in self.plot_radio_buttons:
+            btn['state'] = NORMAL
 
-            return True
-
-        return False
+        return True
 
 
     def select_file(self, filetypes: Tuple[Tuple[str, str]], global_file_path: StringVar) -> None:
@@ -1011,17 +1022,15 @@ class SEAQTGui():
             self.pop_up_error('Number of Subsystems Does Not Match Number of Supplied Temperatures')
             return
 
-        # Update data window image
-        self.update_plot(PlotNumber.DATA_NOT_RUN.value)
-
         # Give back input control and close the window
         window.grab_release()
         window.destroy()
 
         # Run the SEAQT backend
+        self.update_plot(PlotNumber.DATA_PROCESSING.value)
         self.start_data_process()
-
     
+
     def update_plot(self, filenum: int) -> None:
         '''
         Update the central plot using the given file number.
@@ -1072,7 +1081,13 @@ class SEAQTGui():
             json.dump(self.input_json_dict, prefs_file)
 
         # Run the backend (NOTE: blocking)
-        self.backend.run_seaqt()
+        try:
+            self.backend.run_seaqt()
+            self.update_plot(PlotNumber.DATA_PROCESSED_SUCCESSFULLY.value)
+        except:
+            self.pop_up_error('SEAQT Backend Encountered an Error.\n\nThis could be due to faulty input data or parameters; or due to an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
+            self.update_plot(PlotNumber.ERROR.value)
+            return
 
         # Block the new and load buttons
         self.new_run_button['state'] = DISABLED
@@ -1185,7 +1200,7 @@ class SEAQTGui():
         '''
         Inform the user to post a ticket to the github (for now). Eventually, should show FAQ.
         '''
-        self.pop_up_info('Please visit https://github.com/azsprague/seaqt-gui for more info on the system.\n\nIf you have an issue or find a bug, view or open a ticket at https://github.com/azsprague/seaqt-gui/issues. \n\nI am a solo developer and will do my best to handle issues as they arise. Thank You!')
+        self.pop_up_info('Please visit https://github.com/azsprague/seaqt-gui for more info on the system.\n\nIf you have an issue or find a bug, view or open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
 
 
     def exit_button(self) -> None:
