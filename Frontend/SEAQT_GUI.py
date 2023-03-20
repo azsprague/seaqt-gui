@@ -14,7 +14,7 @@ from PIL import Image, ImageTk
 from zipfile import ZipFile
 
 from Frontend.MATLAB_Backend_Handler import MATLABBackendHandler
-from Frontend.Utils import clear_plots
+from Frontend.Utils import clear_matlab_meta, clear_plots
 
 
 class PlotNumber(IntEnum):
@@ -1063,6 +1063,7 @@ class SEAQTGui():
                 chk['state'] = DISABLED
 
             # Remove any old plots
+            clear_matlab_meta()
             clear_plots()
 
             # Reset the displayed image (data not loaded)
@@ -1263,6 +1264,8 @@ class SEAQTGui():
 
         # If the user chooses "yes", destroy the main window (closing the program)
         if user_choice:
+            clear_matlab_meta()
+            clear_plots()
             self.tkinter_root.destroy()
         else:
             return
