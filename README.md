@@ -24,6 +24,8 @@ git clone https://github.com/azsprague/seaqt-gui
 ```
 Install the latest versions of git [here](https://git-scm.com/downloads).
 
+Alternatively, the code can be downloaded as a `zip` file by selecting `Code -> Download ZIP` or by clicking [here](https://github.com/azsprague/seaqt-gui/archive/refs/heads/main.zip).
+
 
 #### Verify Python Version
 Python >= 3.6 is required. You can check your python version using the following command:
@@ -44,10 +46,12 @@ pip install -r requirements.txt
 To use SEAQT GUI with the MATLAB backend, you must first install the MATLAB engine for Python:
 ```
 # Find your MATLAB root directory. This can be done in MATLAB using the command 'matlabroot'
-# Default MATLAB directory: "\Program Files\MATLAB\<version>\"
+# - Default Windows MATLAB directory: "\Program Files\MATLAB\<version>\"
+# - Default MacOS MATLAB directory: "/Applications/MATLAB_<version>/"
+# - Default Linux MATLAB directory: "/usr/local/MATLAB_<version>/"
 
 # Change directories to the MATLAB engine for python
-cd "\path\to\matlab\root\extern\engines\python"
+cd "\<path>\<to>\<matlab>\<root>\extern\engines\python"
 
 # Install the engine
 python setup.py install

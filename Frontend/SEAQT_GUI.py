@@ -524,7 +524,7 @@ class SEAQTGui():
         # Select Fermi energy (label, entry)
         ttk.Label(
             parameter_input_frame,
-            text='Fermi Energy (eV)',
+            text='Fermi Energy (eV * 1.60218e-19 J)',
             width=self.INPUT_PARAMETER_LABEL_WIDTH
         ).grid(column=0, row=0)
 

@@ -232,63 +232,34 @@ phonon_length=length(E_sys)/System_num;
 % plot phonon temperature, PRB Figure 3(a)
 figure('Visible', 'off'); hold on; grid;
 
-level_display = [];
-for i=[11 15 20]
-       temp_T1= 1/kb./beta_T(:,(i-1)*System_length_ph+25);
-    if i == 11
-        plot(T, temp_T1,'r','LineWidth',1.5);
-    elseif i == 15
-        plot(T,temp_T1,'c','LineWidth',1.5)
-    elseif i == 20
-        plot(T,temp_T1,'m','LineWidth',1.5)
-    end
-end
-for i=[1 5 10]
-    temp_T1 = 1/kb./beta_T(:,(i-1)*System_length_ph+25);        %plot acoustic phonon
-    if i == 1
-        plot(T, temp_T1,'k','LineWidth',1.5); 
-    elseif i == 5
-        plot(T,temp_T1,'g','LineWidth',1.5)
-    elseif i==10
-        plot(T,temp_T1,'b','LineWidth',1.5)
-    end
+for i = selected_subs
+    temp_T1= 1/kb./beta_T(:,(i-1)*System_length_ph+25);
+    plot(T, temp_T1, 'LineWidth', 1.5)
 end
 
 set(gca, 'FontSize', 8);
 xlabel('Time (seconds)', 'fontsize', 12);
 ylabel('Phonon Temperature (K)', 'fontsize', 12)
 title('Phonon Temperature vs. Time', 'fontsize', 14)
+lgd = legend(arrayfun(@num2str, selected_subs, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
+title(lgd, 'Subsystem')
 
 exportgraphics(gca, 'Figures/6.png', 'ContentType', 'image');
 
 % plot phonon energy evolution, PRB Figure 4(c)
 figure('Visible', 'off'); hold on; grid;
 
-for i=[1 5 10]
+for i = selected_subs
     temp_E = E_y_T(:,(i-1)*System_length_ph+1:(i)*System_length_ph);
-    if i==1
-        plot(T,sum(temp_E,2),'k','LineWidth',1.5)
-    elseif i==5
-        plot(T,sum(temp_E,2),'g','LineWidth',1.5)
-    elseif i==10
-        plot(T,sum(temp_E,2),'b','LineWidth',1.5)
-    end
-end
-for i=[11 15 20]
-    temp_E = E_y_T(:,(i-1)*System_length_ph+1:(i)*System_length_ph);
-    if i==11
-        plot(T,sum(temp_E,2),'r','LineWidth',1.5)
-    elseif i==15
-        plot(T,sum(temp_E,2),'c','LineWidth',1.5)
-    elseif i==20
-        plot(T,sum(temp_E,2),'m','LineWidth',1.5)
-    end
+    plot(T, sum(temp_E,2), 'LineWidth', 1.5)
 end
 
 set(gca, 'FontSize', 8);
 xlabel('Time (seconds)', 'fontsize', 12);
 ylabel('Phonon Energy (J)', 'fontsize', 12)
 title('Phonon Energy vs. Time', 'fontsize', 14)
+lgd = legend(arrayfun(@num2str, selected_subs, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
+title(lgd, 'Subsystem')
 
 exportgraphics(gca, 'Figures/7.png', 'ContentType', 'image');
 
