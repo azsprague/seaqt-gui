@@ -4,6 +4,8 @@ SEAQT framework/code provides a general thermodynamically rigorous determination
 
 Further discussion can be found in `Introduction.pdf`.
 
+## **NOTE**: this branch is for single-material runs only
+
 ---
 
 
