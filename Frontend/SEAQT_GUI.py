@@ -77,14 +77,14 @@ class SEAQTGui():
     INPUT_FRAME_PAD_Y = 7
     INPUT_DATA_BUTTON_WIDTH = 10
     INPUT_DATA_LABEL_WIDTH = 20
-    INPUT_DATA_ENTRY_WIDTH = 70
+    INPUT_DATA_ENTRY_WIDTH = 50
     INPUT_DATA_FILETYPES = (
         ('Excel Spreadsheet', '*.xlsx'),
         ('Comma-Separated Values', '*.csv')
     )
 
     INPUT_PARAMETER_LABEL_WIDTH = 33
-    INPUT_PARAMETER_ENTRY_WIDTH = 70
+    INPUT_PARAMETER_ENTRY_WIDTH = 50
     INPUT_PARAMETER_INNER_FRAME_PAD_Y = 5
     INPUT_BOTTOM_BUTTON_PAD_X = 5
 
@@ -101,14 +101,16 @@ class SEAQTGui():
 
     PLOT_BUTTON_PAD_Y = 3
 
-    DEFAULT_FERMI = 6
-    DEFAULT_VELOCITIES = 6000
-    DEFAULT_RELAXATION = 50 * (10**-12)
     DEFAULT_NUM_SUBSYSTEMS = 20
-    DEFAULT_SUBS_SIZE = 1 * (10**-7)
-    DEFAULT_SUBS_TEMPS = '295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300'
+    DEFAULT_FERMI = 6
+    DEFAULT_ELECTRON_VELOCITIES = 6000
+    DEFAULT_ELECTRON_RELAXATION = 50 * (10**-16)
+    DEFAULT_PHONON_VELOCITIES = 6000
+    DEFAULT_PHONON_RELAXATION = 5 * (10**-12)
+    DEFAULT_SUB_SIZE = 1 * (10**-7)
+    DEFAULT_SUB_TEMP = 300
     DEFAULT_TIME_DURATION = 100
-    DEFAULT_TIME_TYPE = 1
+    DEFAULT_TIME_TYPE = TimeType.MIN.value
 
     TEMP_DIRECTORY_PATH = 'tmp'
     PARAM_PREFERENCES_FILE_NAME = 'seaqt_prefs.json'
@@ -144,25 +146,30 @@ class SEAQTGui():
         self.tkinter_root.resizable(False, False)
 
         # Data input files (class variables)
-        self.electron_ev_file_path = StringVar(self.tkinter_root)
-        self.electron_dos_file_path = StringVar(self.tkinter_root)
-        self.phonon_ev_file_path = StringVar(self.tkinter_root)
-        self.phonon_dos_file_path = StringVar(self.tkinter_root)
+        self.electron_ev_file_path = StringVar()
+        self.electron_dos_file_path = StringVar()
+        self.phonon_ev_file_path = StringVar()
+        self.phonon_dos_file_path = StringVar()
 
         # Data output directory (class variable)
-        self.export_directory = StringVar(self.tkinter_root)
+        self.export_directory = StringVar()
         
         # Runtime parameters (class variables)
-        self.fermi_energy = DoubleVar(self.tkinter_root, self.DEFAULT_FERMI)                        # eV * 1.60218 * (10**-19) Joules
-        self.phonon_group_velocities = DoubleVar(self.tkinter_root, self.DEFAULT_VELOCITIES)        # m/s
-        self.phonon_relaxation_time = DoubleVar(self.tkinter_root, self.DEFAULT_RELAXATION)         # seconds
-        self.number_of_subsystems = IntVar(self.tkinter_root, self.DEFAULT_NUM_SUBSYSTEMS)          # amount
-        self.selected_subsystems = []                                                               # list of scalars
-        self.subsystems_size = DoubleVar(self.tkinter_root, self.DEFAULT_SUBS_SIZE)                 # meters
-        self.subsystem_temperatures_string = StringVar(self.tkinter_root, self.DEFAULT_SUBS_TEMPS)  # Kelvin    
-        self.subsystem_temperatures_list = []                                                       # list of Kelvin
-        self.time_duration = DoubleVar(self.tkinter_root, self.DEFAULT_TIME_DURATION)               # scalar
-        self.selected_time_type = DoubleVar(self.tkinter_root, self.DEFAULT_TIME_TYPE)              # 'min'
+        self.number_of_subsystems = IntVar(value=self.DEFAULT_NUM_SUBSYSTEMS)               # scalar
+        self.time_duration = DoubleVar(value=self.DEFAULT_TIME_DURATION)                    # scalar
+        self.selected_time_type = IntVar(value=self.DEFAULT_TIME_TYPE)                      # 'min' or 'max'
+        self.fermi_energy = DoubleVar(value=self.DEFAULT_FERMI)                             # eV * 1.60218 * (10**-19) Joules
+        self.electron_group_velocities = DoubleVar(value=self.DEFAULT_ELECTRON_VELOCITIES)  # m/s
+        self.electron_relaxation_time = DoubleVar(value=self.DEFAULT_ELECTRON_RELAXATION)   # seconds
+        self.phonon_group_velocities = DoubleVar(value=self.DEFAULT_PHONON_VELOCITIES)      # m/s
+        self.phonon_relaxation_time = DoubleVar(value=self.DEFAULT_PHONON_RELAXATION)       # seconds
+        self.subsystem_size = DoubleVar(value=self.DEFAULT_SUB_SIZE)                        # meters
+        self.subsystem_temperature = DoubleVar(value=self.DEFAULT_SUB_TEMP)                # Kelvin    
+        
+        self.selected_subsystems = []                                                   
+
+        self.selected_subsystem_input = IntVar(value=1)
+        self.subsystem_radio_buttons = []
 
         self.input_json_dict = {}
 
@@ -175,7 +182,7 @@ class SEAQTGui():
 
         # Plot radio buttons (class variables)
         self.plot_radio_buttons = []
-        self.selected_plot = None
+        self.selected_plot = IntVar(value=PlotNumber.ELECTRON_TEMPERATURE.value)
         self.data_frame_image_frame = None
         self.data_frame_image = None
 
@@ -307,9 +314,7 @@ class SEAQTGui():
         )
         radio_button_frame.grid(column=0, row=0, pady=5)
 
-        # Variable to store button choice
-        self.selected_plot = IntVar(radio_button_frame, PlotNumber.ELECTRON_TEMPERATURE.value)
-
+        # Create radio buttons
         for i in range(len(self.PLOT_NAMES)):
             rb = ttk.Radiobutton(
                 radio_button_frame,
@@ -403,30 +408,147 @@ class SEAQTGui():
         input_window.title('Load Data and Set Parameters')
         input_window.resizable(False, False)
         input_window.grab_set()
-        input_window.grid_columnconfigure(0, weight=1)
-        input_window.grid_columnconfigure(1, weight=1)
+        # input_window.grid_columnconfigure(0, weight=1)
+        # input_window.grid_columnconfigure(1, weight=1)
 
-        # Give users the option to load preferences from last run
-        ttk.Button(
+        ###################################
+        # Start frame for Base Parameters #
+        ###################################
+
+        # Create base parameter frame
+        base_parameter_input = ttk.LabelFrame(
             input_window,
-            text='Import Settings From Last Run',
-            command=self.import_settings_from_last_run,
-            state=NORMAL if os.path.isfile(self.prefs_file_path) else DISABLED,
-            width=self.LOAD_LAST_RUN_BUTTON_WIDTH
-        ).grid(column=0, row=0, padx=5, pady=15)
+            text='Base Parameters',
+            padding=10,
+            relief=SOLID
+        )
+        base_parameter_input.grid(column=0, row=0, padx=5, pady=5)
+
+        # Number of subsystems label
+        ttk.Label(
+            base_parameter_input,
+            text='Number of Subsystems',
+            width=25
+        ).grid(column=0, row=0)
+
+        # Number of subsystems input (spinbox)
+        ttk.Spinbox(
+            base_parameter_input,
+            from_=2,
+            to=100,
+            increment=2,
+            textvariable=self.number_of_subsystems,
+            justify=CENTER,
+            width=19
+        ).grid(column=1, row=0)
+
+        # Run length Label
+        ttk.Label(
+            base_parameter_input,
+            text='Run Length (tau)',
+            width=25
+        ).grid(column=0, row=1)
+
+        # Create time parameter frame
+        time_parameter_frame = ttk.Frame(
+            base_parameter_input,
+            padding=10
+        )
+        time_parameter_frame.grid(column=1, row=1);
+
+        # Run length input
+        ttk.Entry(
+            time_parameter_frame,
+            textvariable=self.time_duration,
+            justify=CENTER,
+            width=5
+        ).grid(column=0, row=0, padx=2)
+
+        # Radio button for min time
+        rb1 = ttk.Radiobutton(
+            time_parameter_frame,
+            text='Min',
+            variable=self.selected_time_type,
+            value=TimeType.MIN.value
+        )
+        rb1.grid(column=1, row=0, padx=2)
+        self.time_radio_buttons.append(rb1)
+
+        # Radio button for max time
+        rb2 = ttk.Radiobutton(
+            time_parameter_frame,
+            text='Max',
+            variable=self.selected_time_type,
+            value=TimeType.MAX.value
+        )
+        rb2.grid(column=2, row=0, padx=2)
+        self.time_radio_buttons.append(rb2)        
+
+        ##########################################
+        # Start frame for subsystem master frame #
+        ##########################################
+
+        # Create master frame for subsystem data
+        subsystem_master_frame = ttk.Frame(
+            input_window,
+            padding=10
+        )
+        subsystem_master_frame.grid(column=0, row=1)
+
+        #############################################
+        # Start frame for subsystem selection frame #
+        #############################################
+
+        # Create selection frame
+        subsystem_selection_frame = ttk.LabelFrame(
+            subsystem_master_frame,
+            text='Subsystem Pair',
+            padding=10,
+            relief=SOLID
+        )
+        subsystem_selection_frame.grid(column=0, row=0, padx=5, pady=5, sticky=N)
+
+        # Radio buttons
+        num_sub_pairs = self.number_of_subsystems.get() // 2
+        for i in range(num_sub_pairs):
+            rb = ttk.Radiobutton(
+                subsystem_selection_frame,
+                text=f"{i + 1}, {num_sub_pairs + i + 1}",
+                variable=self.selected_subsystem_input,
+                value=i + 1
+            )
+            rb.grid(column=0, row=i, padx=3, pady=3, sticky=W)
+            self.subsystem_radio_buttons.append(rb)
+
+        #############################################
+        # Start frame for subsystem parameter frame #
+        #############################################
+
+        # Create parameter frame
+        subsystem_parameter_frame = ttk.LabelFrame(
+            subsystem_master_frame,
+            text="Subsystem Pair Data and Parameters",
+            padding=10,
+            relief=SOLID
+        )
+        subsystem_parameter_frame.grid(column=1, row=0, padx=5, pady=5)
+
+        # Give users the option to load preferences from last subsystem
+        ttk.Button(
+            subsystem_parameter_frame,
+            text='Copy Inputs from Previous Subsystem'
+        ).grid(column=0, row=0, padx=5, pady=5)
 
         ###############################
         # Start frame for file inputs #
         ###############################
 
         # Create file input frame
-        file_input_frame = ttk.LabelFrame(
-            input_window, 
-            text='Input Data',
-            padding=10, 
-            relief=SOLID
+        file_input_frame = ttk.Frame(
+            subsystem_parameter_frame,
+            padding=10
         )
-        file_input_frame.grid(column=0, row=1, padx=self.INPUT_FRAME_PAD_X)
+        file_input_frame.grid(column=0, row=1)
 
         # Select electron ev file (label, entry, button)
         ttk.Label(
@@ -512,141 +634,103 @@ class SEAQTGui():
         # Start frame for parameter inputs #
         ####################################
 
-        # Create parent parameter input frame
-        parameter_input_frame = ttk.LabelFrame(
-            input_window, 
-            text='SEAQT Parameters',
-            padding=10, 
-            relief=SOLID
+        # Create parameter input frame
+        parameter_input_frame = ttk.Frame(
+            subsystem_parameter_frame,
+            padding=10
         )
-        parameter_input_frame.grid(column=0, row=2, padx=self.INPUT_FRAME_PAD_X, pady=self.INPUT_FRAME_PAD_Y)
+        parameter_input_frame.grid(column=0, row=2)
+
+        # Select subsystem size
+        ttk.Label(
+            parameter_input_frame,
+            text='Subsystem Size (m)',
+            width=self.INPUT_PARAMETER_LABEL_WIDTH
+        ).grid(column=0, row=0)
+
+        ttk.Entry(
+            parameter_input_frame,
+            textvariable=self.subsystem_size,
+            width=self.INPUT_PARAMETER_ENTRY_WIDTH
+        ).grid(column=1, row=0, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
+
+        # Select subsystem temperatures
+        ttk.Label(
+            parameter_input_frame,
+            text='Subsystem Temperature (K)',
+            width=self.INPUT_PARAMETER_LABEL_WIDTH
+        ).grid(column=0, row=1)
+
+        ttk.Entry(
+            parameter_input_frame,
+            textvariable=self.subsystem_temperature,
+            width=self.INPUT_PARAMETER_ENTRY_WIDTH
+        ).grid(column=1, row=1, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)      
 
         # Select Fermi energy (label, entry)
         ttk.Label(
             parameter_input_frame,
             text='Fermi Energy (eV * 1.60218e-19 J)',
             width=self.INPUT_PARAMETER_LABEL_WIDTH
-        ).grid(column=0, row=0)
+        ).grid(column=0, row=2)
 
         ttk.Entry(
             parameter_input_frame,
             textvariable=self.fermi_energy,
             width=self.INPUT_PARAMETER_ENTRY_WIDTH
-        ).grid(column=1, row=0, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
+        ).grid(column=1, row=2, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
+
+        # Select electron group velocities
+        ttk.Label(
+            parameter_input_frame,
+            text='Electron Group Velocities (m/s)',
+            width=self.INPUT_PARAMETER_LABEL_WIDTH
+        ).grid(column=0, row=3)
+
+        ttk.Entry(
+            parameter_input_frame,
+            textvariable=self.electron_group_velocities,
+            width=self.INPUT_PARAMETER_ENTRY_WIDTH
+        ).grid(column=1, row=3, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
+
+        # Select electron relaxation time
+        ttk.Label(
+            parameter_input_frame,
+            text='Electron Relaxation Time (s)',
+            width=self.INPUT_PARAMETER_LABEL_WIDTH
+        ).grid(column=0, row=4)
+
+        ttk.Entry(
+            parameter_input_frame,
+            textvariable=self.electron_relaxation_time,
+            width=self.INPUT_PARAMETER_ENTRY_WIDTH
+        ).grid(column=1, row=4, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
 
         # Select phonon group velocities
         ttk.Label(
             parameter_input_frame,
             text='Phonon Group Velocities (m/s)',
             width=self.INPUT_PARAMETER_LABEL_WIDTH
-        ).grid(column=0, row=1)
+        ).grid(column=0, row=5)
 
         ttk.Entry(
             parameter_input_frame,
             textvariable=self.phonon_group_velocities,
             width=self.INPUT_PARAMETER_ENTRY_WIDTH
-        ).grid(column=1, row=1, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
+        ).grid(column=1, row=5, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
 
         # Select phonon relaxation time
         ttk.Label(
             parameter_input_frame,
             text='Phonon Relaxation Time (s)',
             width=self.INPUT_PARAMETER_LABEL_WIDTH
-        ).grid(column=0, row=2)
+        ).grid(column=0, row=6)
 
         ttk.Entry(
             parameter_input_frame,
             textvariable=self.phonon_relaxation_time,
             width=self.INPUT_PARAMETER_ENTRY_WIDTH
-        ).grid(column=1, row=2, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
-
-        # Select number of subsystems
-        ttk.Label(
-            parameter_input_frame,
-            text='Number of Subsystems',
-            width=self.INPUT_PARAMETER_LABEL_WIDTH
-        ).grid(column=0, row=3)
-
-        ttk.Entry(
-            parameter_input_frame,
-            textvariable=self.number_of_subsystems,
-            width=self.INPUT_PARAMETER_ENTRY_WIDTH
-        ).grid(column=1, row=3, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
-
-        # Select subsystems size
-        ttk.Label(
-            parameter_input_frame,
-            text='Subsystems Size (m)',
-            width=self.INPUT_PARAMETER_LABEL_WIDTH
-        ).grid(column=0, row=4)
-
-        ttk.Entry(
-            parameter_input_frame,
-            textvariable=self.subsystems_size,
-            width=self.INPUT_PARAMETER_ENTRY_WIDTH
-        ).grid(column=1, row=4, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
-
-        # Select subsystem temperatures
-        ttk.Label(
-            parameter_input_frame,
-            text='Subsystem Temperatures (K)',
-            width=self.INPUT_PARAMETER_LABEL_WIDTH
-        ).grid(column=0, row=5)
-
-        ttk.Entry(
-            parameter_input_frame,
-            textvariable=self.subsystem_temperatures_string,
-            width=self.INPUT_PARAMETER_ENTRY_WIDTH
-        ).grid(column=1, row=5, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
-
-        ##################################
-        # Start frame for time selection #
-        ##################################
-
-        # Create frame for time selection
-        time_selection_frame = ttk.LabelFrame(
-            input_window,
-            text='Time',
-            padding=10,
-            relief=SOLID
-        )
-        time_selection_frame.grid(column=0, row=3, padx=self.INPUT_FRAME_PAD_X, pady=self.INPUT_FRAME_PAD_Y)
-
-        # Select time duration
-        ttk.Label(
-            time_selection_frame,
-            text='Run Duration',
-            width=15
-        ).grid(column=0, row=0)
-
-        ttk.Entry(
-            time_selection_frame,
-            textvariable=self.time_duration,
-            width=15
-        ).grid(column=1, row=0)
-
-        # Variable to store button choice
-        self.selected_time_type = IntVar(time_selection_frame, TimeType.MIN.value)
-
-        # Radio button for min time
-        rb1 = ttk.Radiobutton(
-            time_selection_frame,
-            text='Min(tau)',
-            variable=self.selected_time_type,
-            value=TimeType.MIN.value
-        )
-        rb1.grid(column=0, row=1, padx=5, pady=5)
-        self.time_radio_buttons.append(rb1)
-
-        # Radio button for max time
-        rb2 = ttk.Radiobutton(
-            time_selection_frame,
-            text='Max(tau)',
-            variable=self.selected_time_type,
-            value=TimeType.MAX.value
-        )
-        rb2.grid(column=1, row=1, padx=5, pady=5)
-        self.time_radio_buttons.append(rb2)        
+        ).grid(column=1, row=6, padx=self.ENTRY_PAD_X, pady=self.ENTRY_PAD_Y)
 
         ##################################
         # Start frame for bottom buttons #
@@ -657,21 +741,21 @@ class SEAQTGui():
             input_window,
             padding=10
         )
-        data_input_button_frame.grid(column=0, row=4, padx=self.INPUT_FRAME_PAD_X, pady=self.INPUT_FRAME_PAD_Y)
-
-        # Cancel button
-        ttk.Button(
-            data_input_button_frame,
-            text='Cancel',
-            command=partial(self.cancel_data_input, input_window)
-        ).grid(column=1, row=0, padx=self.INPUT_BOTTOM_BUTTON_PAD_X)
+        data_input_button_frame.grid(column=0, row=2, padx=5, pady=5)
 
         # Run button (all fields must be filled to confirm)
         ttk.Button(
             data_input_button_frame, 
             text='Run', 
             command=partial(self.confirm_data_input_and_run, input_window)
-        ).grid(column=0, row=0, padx=self.INPUT_BOTTOM_BUTTON_PAD_X)
+        ).grid(column=0, row=0, padx=5)
+
+        # Cancel button
+        ttk.Button(
+            data_input_button_frame,
+            text='Cancel',
+            command=partial(self.cancel_data_input, input_window)
+        ).grid(column=1, row=0, padx=5)
 
 
     def import_settings_from_last_run(self) -> None:
@@ -836,12 +920,14 @@ class SEAQTGui():
 
         # Set params to default
         self.fermi_energy.set(self.DEFAULT_FERMI)
-        self.phonon_group_velocities.set(self.DEFAULT_VELOCITIES)
-        self.phonon_relaxation_time.set(self.DEFAULT_RELAXATION)
-        self.subsystems_size.set(self.DEFAULT_SUBS_SIZE)
+        self.electron_group_velocities.set(self.DEFAULT_ELECTRON_VELOCITIES)
+        self.electron_relaxation_time.set(self.DEFAULT_ELECTRON_RELAXATION)
+        self.phonon_group_velocities.set(self.DEFAULT_PHONON_VELOCITIES)
+        self.phonon_relaxation_time.set(self.DEFAULT_PHONON_RELAXATION)
+        self.subsystem_size.set(self.DEFAULT_SUB_SIZE)
         self.number_of_subsystems.set(self.DEFAULT_NUM_SUBSYSTEMS)
         self.selected_subsystems = []
-        self.subsystem_temperatures_string.set(self.DEFAULT_SUBS_TEMPS)
+        self.subsystem_temperature.set(self.DEFAULT_SUB_TEMP)
         self.time_duration.set(self.DEFAULT_TIME_DURATION)
         self.selected_time_type.set(self.DEFAULT_TIME_TYPE)
 
@@ -862,11 +948,13 @@ class SEAQTGui():
                 not self.phonon_dos_file_path.get() or
                 not self.phonon_ev_file_path.get() or
                 not self.fermi_energy.get() or
+                not self.electron_group_velocities.get() or
+                not self.electron_relaxation_time.get() or
                 not self.phonon_group_velocities.get() or
                 not self.phonon_relaxation_time.get() or
-                not self.subsystems_size.get() or
+                not self.subsystem_size.get() or
                 not self.number_of_subsystems.get() or
-                not self.subsystem_temperatures_string.get() or
+                not self.subsystem_temperature.get() or
                 not self.time_duration.get()):
 
             self.pop_up_error('Please Complete All Fields')
