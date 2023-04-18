@@ -191,9 +191,15 @@ class SEAQTGui():
         self.phonon_relaxation_times = []           # DoubleVar
         
         # Various frames and etc.
+        self.right_menu_frame = None
+        self.radio_button_frame = None
+
+        self.block_plot_selection_frame = None
+        self.checkbox_frame = None
+
         self.block_master_frame = None
         self.block_parameter_frame = None
-        self.block_selection_frame = None
+        self.block_input_selection_frame = None
         self.notebook = None
 
         # Selected blocks for plotting
@@ -212,16 +218,16 @@ class SEAQTGui():
         self.export_button = None
 
         # Plot radio buttons (class variables)
-        self.plot_radio_buttons = []
-        self.selected_plot = IntVar(value=PlotNumber.ELECTRON_TEMPERATURE.value)
+        self.plot_radio_buttons = None
+        self.selected_plot = IntVar(value=PlotNumber.INVALID.value)
         self.data_frame_image_frame = None
         self.data_frame_image = None
 
         self.time_radio_buttons = []
         
         # Subsystem checkbuttons (class variables)
-        self.subsystem_variables = []
-        self.subsystem_checkbuttons = []
+        self.block_variables = None
+        self.block_check_buttons = None
         self.plot_button = None
 
         # Export variables
@@ -320,73 +326,34 @@ class SEAQTGui():
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
         # Create right panel
-        right_menu_frame = ttk.Frame(
+        self.right_menu_frame = ttk.Frame(
             self.tkinter_root,
             padding=10
         )
-        right_menu_frame.grid(column=2, row=0, padx=10, pady=15, sticky=N)
+        self.right_menu_frame.grid(column=2, row=0, padx=10, pady=15, sticky=N)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-        # Create radio button frame
-        radio_button_frame = ttk.LabelFrame(
-            right_menu_frame,
-            text='Select Plot',
-            padding=10,
-            relief=SOLID
-        )
-        radio_button_frame.grid(column=0, row=0, pady=5)
-
-        # Create radio buttons
-        for i in range(len(self.PLOT_NAMES)):
-            rb = ttk.Radiobutton(
-                radio_button_frame,
-                text=self.PLOT_NAMES[i],
-                variable=self.selected_plot,
-                value=i + 1,
-                command=partial(self.update_plot, i + 1),
-                state=DISABLED
-            )
-            rb.grid(column=0, row=i, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-            self.plot_radio_buttons.append(rb)
+        # Create plot radio buttons
+        self.update_plot_radio_buttons(False)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
         # Create subsystem selection frame
-        subsystem_selection_frame = ttk.LabelFrame(
-            right_menu_frame,
+        self.block_plot_selection_frame = ttk.LabelFrame(
+            self.right_menu_frame,
             text='Blocks to Plot',
             padding=10,
             relief=SOLID
         )
-        subsystem_selection_frame.grid(column=0, row=1, pady=5)
+        self.block_plot_selection_frame.grid(column=0, row=1, pady=5)
 
-        # Frame to hold the checkboxes
-        checkbox_frame = ttk.Frame(
-            subsystem_selection_frame
-        )
-        checkbox_frame.grid(column=0, row=0, sticky=N)
-
-        # Create a subsystem button for the number of selected subsystems
-        num_subsystems = self.number_of_blocks.get()
-        for i in range(num_subsystems):
-            subsystem_variable = IntVar(checkbox_frame, 0)
-            self.subsystem_variables.append(subsystem_variable)
-
-            check_btn = ttk.Checkbutton(
-                checkbox_frame,
-                text=f'{i + 1}',
-                variable=subsystem_variable,
-                onvalue=1,
-                offvalue=0,
-                state=DISABLED
-            )
-            check_btn.grid(column=(i // (num_subsystems // 2)) % 2, row=i % (num_subsystems // 2), padx=17, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
-            self.subsystem_checkbuttons.append(check_btn)
+        # Create block check buttons
+        self.update_plot_check_buttons(False)
 
         # Button to replot given selected systems
         self.plot_button = ttk.Button(
-            subsystem_selection_frame,
+            self.block_plot_selection_frame,
             text='Plot',
             command=self.replot,
             state=DISABLED
@@ -417,6 +384,99 @@ class SEAQTGui():
         self.data_frame_image_frame.place(relx=0.5, rely=0.5, anchor=CENTER)
         self.update_plot(PlotNumber.DATA_NOT_LOADED.value)
 
+    
+    def update_plot_radio_buttons(self, enable: bool) -> None:
+        '''
+        Comment
+        '''
+        # Create radio button frame
+        if self.radio_button_frame != None:
+            self.radio_button_frame.destroy()
+
+        self.radio_button_frame = ttk.LabelFrame(
+            self.right_menu_frame,
+            text='Select Plot',
+            padding=10,
+            relief=SOLID
+        )
+        self.radio_button_frame.grid(column=0, row=0, pady=5)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        # Create radio buttons
+        self.plot_radio_buttons = []
+        for i in range(len(self.PLOT_NAMES)):
+            rb = ttk.Radiobutton(
+                self.radio_button_frame,
+                text=self.PLOT_NAMES[i],
+                variable=self.selected_plot,
+                value=i + 1,
+                command=partial(self.update_plot, i + 1),
+                state=DISABLED
+            )
+            rb.grid(column=0, row=i, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+            self.plot_radio_buttons.append(rb)
+
+        # Reset plot selector
+        self.selected_plot.set(PlotNumber.INVALID.value)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        # Update button states based on enable status and run type
+        if enable:
+            run_type = self.selected_run_type.get()
+
+            # Enable electron buttons
+            if run_type == RunType.ELECTRON.value or run_type == RunType.BOTH.value:
+                self.plot_radio_buttons[0]['state'] = NORMAL
+                self.plot_radio_buttons[1]['state'] = NORMAL
+                self.plot_radio_buttons[2]['state'] = NORMAL
+                self.plot_radio_buttons[3]['state'] = NORMAL
+                self.plot_radio_buttons[4]['state'] = NORMAL
+
+            # Enable phonon buttons
+            if run_type == RunType.PHONON.value or run_type == RunType.BOTH.value:
+                self.plot_radio_buttons[5]['state'] = NORMAL
+                self.plot_radio_buttons[6]['state'] = NORMAL
+
+            # Enable combined buttons
+            if run_type == RunType.BOTH.value:
+                self.plot_radio_buttons[7]['state'] = NORMAL
+                self.plot_radio_buttons[8]['state'] = NORMAL
+
+
+    def update_plot_check_buttons(self, enable: bool) -> None:
+        '''
+        Comment
+        '''
+        # Frame to hold the checkboxes
+        if self.checkbox_frame != None:
+            self.checkbox_frame.destroy()
+
+        self.checkbox_frame = ttk.Frame(self.block_plot_selection_frame)
+        self.checkbox_frame.grid(column=0, row=0, sticky=N)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        # Create a subsystem button for the number of selected subsystems
+        num_blocks = self.number_of_blocks.get()
+        self.block_check_buttons = []
+        self.block_variables = []
+        for i in range(num_blocks):
+            curr_block_variable = IntVar(value=0)
+            self.block_variables.append(curr_block_variable)
+
+            check_button = ttk.Checkbutton(
+                self.checkbox_frame,
+                text=f'{i + 1}',
+                variable=curr_block_variable,
+                onvalue=1,
+                offvalue=0,
+                state=NORMAL if enable else DISABLED
+            )
+            check_button.grid(column=(i // int((num_blocks / 2) + 0.5)) % 2, row=i % int((num_blocks / 2) + 0.5), padx=17, pady=self.PLOT_BUTTON_PAD_Y, sticky=W)
+            self.block_check_buttons.append(check_button)
+
 
     def activate_input_data_window(self) -> None:
         '''
@@ -427,8 +487,6 @@ class SEAQTGui():
         input_window.title('Load Data and Set Parameters')
         input_window.resizable(False, False)
         input_window.grab_set()
-        # input_window.grid_columnconfigure(0, weight=1)
-        # input_window.grid_columnconfigure(1, weight=1)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
@@ -626,11 +684,12 @@ class SEAQTGui():
         '''
         Comment
         '''
-        # Update the arrays
+        # Calculate the old and new sizes
         old_list_size = len(self.block_sizes)
         new_list_size = self.number_of_blocks.get()
         size_delta = abs(new_list_size - old_list_size)
 
+        # Removing block(s)
         if (new_list_size < old_list_size):
             self.block_sizes = self.block_sizes[:new_list_size]
             self.block_temperatures = self.block_temperatures[:new_list_size]
@@ -649,6 +708,7 @@ class SEAQTGui():
             self.phonon_group_velocities = self.phonon_group_velocities[:new_list_size]
             self.phonon_relaxation_times = self.phonon_relaxation_times[:new_list_size]
         
+        # Adding block(s)
         elif (new_list_size > old_list_size):
             self.block_sizes += [DoubleVar() for _ in range(size_delta)]
             self.block_temperatures += [DoubleVar() for _ in range(size_delta)]
@@ -667,6 +727,7 @@ class SEAQTGui():
             self.phonon_group_velocities += [DoubleVar() for _ in range(size_delta)]
             self.phonon_relaxation_times += [DoubleVar() for _ in range(size_delta)]
 
+        # If there was a change, update the UI
         if size_delta > 0:
             self.update_block_selection()
 
@@ -676,16 +737,16 @@ class SEAQTGui():
         Update the number of blocks available for selection
         '''
         # Create selection frame
-        if self.block_selection_frame != None:
-            self.block_selection_frame.destroy()
+        if self.block_input_selection_frame != None:
+            self.block_input_selection_frame.destroy()
 
-        self.block_selection_frame = ttk.LabelFrame(
+        self.block_input_selection_frame = ttk.LabelFrame(
             self.block_master_frame,
             text='Select Block',
             padding=10,
             relief=SOLID
         )
-        self.block_selection_frame.grid(column=0, row=0, padx=5, pady=5, sticky=N)
+        self.block_input_selection_frame.grid(column=0, row=0, padx=5, pady=5, sticky=N)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
@@ -693,7 +754,7 @@ class SEAQTGui():
         self.block_radio_buttons = []
         for i in range(self.number_of_blocks.get()):
             rb = ttk.Radiobutton(
-                self.block_selection_frame,
+                self.block_input_selection_frame,
                 text=f"Block {i + 1}",
                 variable=self.selected_block_input,
                 command=self.update_block_data_window,
@@ -1200,172 +1261,24 @@ class SEAQTGui():
         to_block_index = self.selected_block_input.get() - 1
         from_block_index = self.block_to_copy_from.get() - 1
 
-        self.block_sizes[to_block_index] = self.block_sizes[from_block_index]
-        self.block_temperatures[to_block_index] = self.block_temperatures[from_block_index]
-        self.fermi_energies[to_block_index] = self.fermi_energies[from_block_index]
+        self.block_sizes[to_block_index].set(self.block_sizes[from_block_index].get())
+        self.block_temperatures[to_block_index].set(self.block_temperatures[from_block_index].get())
+        self.fermi_energies[to_block_index].set(self.fermi_energies[from_block_index].get())
 
-        self.electron_ev_file_paths[to_block_index] = self.electron_ev_file_paths[from_block_index]
-        self.electron_dos_file_paths[to_block_index] = self.electron_dos_file_paths[from_block_index]
-        self.electron_tau_file_paths[to_block_index] = self.electron_tau_file_paths[from_block_index]
-        self.electron_group_velocities[to_block_index] = self.electron_group_velocities[from_block_index]
-        self.electron_relaxation_times[to_block_index] = self.electron_relaxation_times[from_block_index]
-        self.electron_effective_masses[to_block_index] = self.electron_effective_masses[from_block_index]
+        self.electron_ev_file_paths[to_block_index].set(self.electron_ev_file_paths[from_block_index].get())
+        self.electron_dos_file_paths[to_block_index].set(self.electron_dos_file_paths[from_block_index].get())
+        self.electron_tau_file_paths[to_block_index].set(self.electron_tau_file_paths[from_block_index].get())
+        self.electron_group_velocities[to_block_index].set(self.electron_group_velocities[from_block_index].get())
+        self.electron_relaxation_times[to_block_index].set(self.electron_relaxation_times[from_block_index].get())
+        self.electron_effective_masses[to_block_index].set(self.electron_effective_masses[from_block_index].get())
 
-        self.phonon_ev_file_paths[to_block_index] = self.phonon_ev_file_paths[from_block_index]
-        self.phonon_dos_file_paths[to_block_index] = self.phonon_dos_file_paths[from_block_index]
-        self.phonon_tau_file_paths[to_block_index] = self.phonon_tau_file_paths[from_block_index]
-        self.phonon_group_velocities[to_block_index] = self.phonon_group_velocities[from_block_index]
-        self.phonon_relaxation_times[to_block_index] = self.phonon_relaxation_times[from_block_index]
+        self.phonon_ev_file_paths[to_block_index].set(self.phonon_ev_file_paths[from_block_index].get())
+        self.phonon_dos_file_paths[to_block_index].set(self.phonon_dos_file_paths[from_block_index].get())
+        self.phonon_tau_file_paths[to_block_index].set(self.phonon_tau_file_paths[from_block_index].get())
+        self.phonon_group_velocities[to_block_index].set(self.phonon_group_velocities[from_block_index].get())
+        self.phonon_relaxation_times[to_block_index].set(self.phonon_relaxation_times[from_block_index].get())
 
         self.update_block_data_window()
-
-
-    # def import_settings_from_last_run(self) -> None:
-    #     '''
-    #     Load the existing prefs file to speed up runtime.
-    #     '''
-    #     if not os.path.isfile(self.prefs_file_path):
-    #         self.pop_up_error('Could Not Import Prefs; No Previous Run Data Found')
-    #         return
-
-    #     with open(self.prefs_file_path, 'r') as prefs_file:
-    #         try:
-    #             prefs_json_dict = json.load(prefs_file)
-    #         except:
-    #             self.pop_up_error('Could Not Import Prefs; File Corrupted / Modified')
-    #             return
-
-    #         failed_imports = []
-
-    #         e_ev_path = prefs_json_dict.get('e_ev_path')
-    #         if e_ev_path and isinstance(e_ev_path, str):
-    #             self.electron_ev_file_path.set(e_ev_path)
-    #         else:
-    #             failed_imports.append('Electron EV Path')
-
-    #         e_dos_path = prefs_json_dict.get('e_dos_path')
-    #         if e_dos_path and isinstance(e_dos_path, str):
-    #             self.electron_dos_file_path.set(e_dos_path)
-    #         else:
-    #             failed_imports.append('Electron DOS Path')
-
-    #         p_ev_path = prefs_json_dict.get('p_ev_path')
-    #         if p_ev_path and isinstance(p_ev_path, str):
-    #             self.phonon_ev_file_path.set(p_ev_path)
-    #         else:
-    #             failed_imports.append('Phonon EV Path')
-
-    #         p_dos_path = prefs_json_dict.get('p_dos_path')
-    #         if p_dos_path and isinstance(p_dos_path, str):
-    #             self.phonon_dos_file_path.set(p_dos_path)
-    #         else:
-    #             failed_imports.append('Phonon DOS Path')
-
-    #         fermi_energy = prefs_json_dict.get('fermi_energy')
-    #         if fermi_energy and isinstance(fermi_energy, float):
-    #             self.fermi_energy.set(fermi_energy)
-    #         else:
-    #             failed_imports.append('Fermi Energy')
-
-    #         velocities = prefs_json_dict.get('velocities')
-    #         if velocities and isinstance(velocities, float):
-    #             self.phonon_group_velocities.set(velocities)
-    #         else:
-    #             failed_imports.append('Velocities')
-
-    #         relaxation = prefs_json_dict.get('relaxation')
-    #         if relaxation and isinstance(relaxation, float):
-    #             self.phonon_relaxation_time.set(relaxation)
-    #         else:
-    #             failed_imports.append('Relaxation Period')
-
-    #         subsystems = prefs_json_dict.get('subsystems')
-    #         if subsystems and isinstance(subsystems, int):
-    #             self.number_of_blocks.set(subsystems)
-    #         else:
-    #             failed_imports.append('Number of Subsystems')
-
-    #         sub_size = prefs_json_dict.get('sub_size')
-    #         if sub_size and isinstance(sub_size, float):
-    #             self.subsystems_size.set(sub_size)
-    #         else:
-    #             failed_imports.append('Subsystems Size')
-
-    #         temps = prefs_json_dict.get('temps')
-    #         if temps and isinstance(temps, list):
-    #             self.subsystem_temperatures_string.set(', '.join(temps))
-    #             self.subsystem_temperatures_list = temps
-    #         else:
-    #             failed_imports.append('Temperatures')
-
-    #         time = prefs_json_dict.get('time_duration')
-    #         if time and isinstance(time, float):
-    #             self.time_duration.set(time)
-    #         else:
-    #             failed_imports.append('Time Duration')
-
-    #         num_failed = len(failed_imports)
-    #         if num_failed > 0:
-    #             self.pop_up_error(f"Failed to Import {num_failed} Preference{'s' if num_failed > 1 else ''}:\n\n{', '.join(failed_imports)}")
-
-
-    def load_previous_run(self) -> None:
-        '''
-        Have the user select a previous run file to load into memory.
-        '''
-        # Have the user select a file
-        archive_file_path = StringVar()
-        self.select_file(self.SEAQT_RUN_FILETYPE, archive_file_path)
-
-        # If no file was selected, return
-        if not archive_file_path or not archive_file_path.get() or archive_file_path.get() == '':
-            self.pop_up_error('No Archive File Selected')
-            return
-        
-        # Unpack and check the files
-        try:
-            with ZipFile(archive_file_path.get(), 'r') as zf:
-                for filename in self.SEAQT_RUN_FILENAMES:
-                    zf.extract(filename, self.TEMP_DIRECTORY_PATH)
-        except:
-            self.pop_up_error('Failed to unpack SEAQT archive; data may be missing or corrupt.')
-            return    
-        
-        # Copy all values from JSON file to class vairables
-        try:
-            with open(self.prefs_file_path, 'r') as prefs_file:
-                prefs_json = json.load(prefs_file)
-                
-                self.input_json_dict['e_ev_path'] = prefs_json['e_ev_path']
-                self.input_json_dict['e_dos_path'] = prefs_json['e_dos_path']
-                self.input_json_dict['p_ev_path'] = prefs_json['p_ev_path']
-                self.input_json_dict['p_dos_path'] = prefs_json['p_dos_path']
-                self.input_json_dict['fermi_energy'] = prefs_json['fermi_energy']
-                self.input_json_dict['velocities'] = prefs_json['velocities']
-                self.input_json_dict['relaxation'] = prefs_json['relaxation']
-                self.input_json_dict['subsystems'] = prefs_json['subsystems']
-                self.input_json_dict['sub_size'] = prefs_json['sub_size']
-                self.input_json_dict['temps'] = prefs_json['temps']
-                self.input_json_dict['time_duration'] = prefs_json['time_duration']
-                self.input_json_dict['time_type'] = prefs_json['time_type']
-                self.input_json_dict['selected_subs'] = prefs_json['selected_subs']
-        except:
-            self.pop_up_error('Failed to read parameters from preferences file; data may be missing or corrupted.')
-            return
-
-        # Disable new and load buttons, enable reset, save, and plot buttons
-        self.new_run_button['state'] = DISABLED
-        self.load_run_button['state'] = DISABLED
-        self.reset_button['state'] = NORMAL
-        self.save_button['state'] = NORMAL
-        self.plot_button['state'] = NORMAL
-
-        # Unlock the subsystem checkbuttons
-        for chk in self.subsystem_checkbuttons:
-            chk['state'] = NORMAL
-
-        # Update plot image
-        self.update_plot(PlotNumber.DATA_LOADED_SUCCESSFULLY.value)
 
 
     def cancel_data_input(self, window: Toplevel) -> None:
@@ -1374,7 +1287,6 @@ class SEAQTGui():
 
         :param window: The window object for the data input screen
         '''
-        # Erase data input paths
         self.number_of_blocks = IntVar(value=self.DEFAULT_NUM_BLOCKS)       # scalar
         self.time_duration = DoubleVar(value=self.DEFAULT_TIME_DURATION)    # scalar
         self.selected_time_type = IntVar(value=self.DEFAULT_TIME_TYPE)      # min or max
@@ -1400,6 +1312,12 @@ class SEAQTGui():
         self.phonon_group_velocities = []           # DoubleVar
         self.phonon_relaxation_times = []           # DoubleVar
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        # Update the plotting buttons
+        self.update_plot_radio_buttons(False)
+        self.update_plot_check_buttons(False)
+
         # Give back input control and close the window
         window.grab_release()
         window.destroy()
@@ -1411,44 +1329,91 @@ class SEAQTGui():
 
         :param window: The window object for the data input screen
         '''
-        # Check all data fields
-        if (not self.electron_dos_file_path.get() or
-                not self.electron_ev_file_path.get() or 
-                not self.phonon_dos_file_path.get() or
-                not self.phonon_ev_file_path.get() or
-                not self.fermi_energy.get() or
-                not self.electron_group_velocities.get() or
-                not self.electron_relaxation_time.get() or
-                not self.phonon_group_velocities.get() or
-                not self.phonon_relaxation_time.get() or
-                not self.subsystem_size.get() or
-                not self.number_of_blocks.get() or
-                not self.subsystem_temperature.get() or
-                not self.time_duration.get()):
-
-            self.pop_up_error('Please Complete All Fields')
-            return
-
-        # Ensure data files exist
-        if not os.path.isfile(self.electron_ev_file_path.get()):
-            self.file_not_found_error(self.electron_ev_file_path.get())
-            return
-        elif not os.path.isfile(self.electron_dos_file_path.get()):
-            self.file_not_found_error(self.electron_dos_file_path.get())
-            return
-        elif not os.path.isfile(self.phonon_ev_file_path.get()):
-            self.file_not_found_error(self.phonon_ev_file_path.get())
-            return
-        elif not os.path.isfile(self.phonon_dos_file_path.get()):
-            self.file_not_found_error(self.phonon_dos_file_path.get())
+        # Check base parameters
+        if not self.number_of_blocks.get() or not self.time_duration.get() or not self.selected_run_type.get():
+            self.pop_up_error('Please Complete All Fields\n\nMissing One or More Base Parameter')
             return
         
-        # Convert temperature string to array
-        subsystem_temps_string = self.subsystem_temperatures_string.get()
-        self.subsystem_temperatures_list = [x.strip() for x in subsystem_temps_string.split(',')]   # Split string by commas and strip any whitespace
-        if len(self.subsystem_temperatures_list) != self.number_of_blocks.get():
-            self.pop_up_error('Number of Subsystems Does Not Match Number of Supplied Temperatures')
-            return
+        # Check block sizes
+        for block_size in self.block_sizes:
+            if not block_size or not block_size.get():
+                self.pop_up_error('Please Complete All Fields\n\nMissing One or More Block Size')
+                return
+            
+        # Check block temperatures
+        for block_temp in self.block_temperatures:
+            if not block_temp or not block_temp.get():
+                self.pop_up_error('Please Complete All Fields\n\nMissing One or More Block Temperature')
+                return
+            
+        # Check fermi energies
+        for energy in self.fermi_energies:
+            if not energy or not energy.get():
+                self.pop_up_error('Please Complete All Fields\n\nMissing One or More Fermi Energy')
+                return
+
+        # Get the run type
+        run_type = self.selected_run_type.get()
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        # Check electron run parameters
+        if (run_type == RunType.ELECTRON.value or run_type == RunType.BOTH.value):
+
+            # Check electron ev filepaths
+            for file_path in self.electron_ev_file_paths:
+                if not file_path or not file_path.get() or file_path.get() == "":
+                    self.pop_up_error('Please Complete All Fields\n\nMissing One or More Electron EV File Path')
+                    return
+                
+            # Check electron dos filepaths
+            for file_path in self.electron_dos_file_paths:
+                if not file_path or not file_path.get() or file_path.get() == "":
+                    self.pop_up_error('Please Complete All Fields\n\nMissing One or More Electron DOS File Path')
+                    return
+                
+            # Check electron relaxation times
+            for relax_time in self.electron_relaxation_times:
+                if not relax_time or not relax_time.get():
+                    self.pop_up_error('Please Complete All Fields\n\nMissing One or More Electron Relaxation Time')
+                    return
+                
+            # Check electron effective masses
+            for effect_mass in self.electron_effective_masses:
+                if not effect_mass or not effect_mass.get():
+                    self.pop_up_error('Please Complete All Fields\n\nMissing One or More Electron Effective Mass')
+                    return
+                
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+                
+        # Check phonon run parameters
+        if (run_type == RunType.PHONON.value or run_type == RunType.BOTH.value):
+
+            # Check phonon ev filepaths
+            for file_path in self.phonon_ev_file_paths:
+                if not file_path or not file_path.get() or file_path.get() == "":
+                    self.pop_up_error('Please Complete All Fields\n\nMissing One or More Phonon EV File Path')
+                    return
+                
+            # Check phonon dos filepaths
+            for file_path in self.phonon_dos_file_paths:
+                if not file_path or not file_path.get() or file_path.get() == "":
+                    self.pop_up_error('Please Complete All Fields\n\nMissing One or More Phonon DOS File Path')
+                    return
+                
+            # Check phonon group velocities
+            for velocity in self.phonon_group_velocities:
+                if not velocity or not velocity.get():
+                    self.pop_up_error('Please Complete All Fields\n\nMissing One or More Phonon Group Velocities')
+                    return
+            
+            # Check phonon relaxation times
+            for relax_time in self.phonon_relaxation_times:
+                if not relax_time or not relax_time.get():
+                    self.pop_up_error('Please Complete All Fields\n\nMissing One or More Phonon Relaxation Time')
+                    return
+            
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
         # Give back input control and close the window
         window.grab_release()
@@ -1457,6 +1422,142 @@ class SEAQTGui():
         # Run the SEAQT backend
         self.update_plot(PlotNumber.DATA_PROCESSING.value)
         self.start_data_process()
+
+
+    def start_data_process(self) -> None:
+        '''
+        Run the SEAQT backend using the desired handler.
+        '''
+        # Add base parameters
+        self.input_json_dict['number_of_blocks'] = self.number_of_blocks.get()
+        self.input_json_dict['time_duration'] = self.time_duration.get()
+        self.input_json_dict['time_type'] = self.selected_time_type.get()
+        self.input_json_dict['run_type'] = self.selected_run_type.get()
+
+        # Add shared parameters
+        self.input_json_dict['block_sizes'] = [x.get() for x in self.block_sizes]
+        self.input_json_dict['block_temperatures'] = [x.get() for x in self.block_temperatures]
+        self.input_json_dict['fermi_energies'] = [x.get() for x in self.fermi_energies]
+
+        # Get the run type
+        run_type = self.selected_run_type.get()
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        # Add electron parameters
+        if run_type == RunType.ELECTRON.value or run_type == RunType.BOTH.value:
+
+            self.input_json_dict['electron_ev_paths'] = [x.get() for x in self.electron_ev_file_paths]
+            self.input_json_dict['electron_dos_paths'] = [x.get() for x in self.electron_dos_file_paths]
+            self.input_json_dict['electron_tau_paths'] = [x.get() for x in self.electron_tau_file_paths]
+
+            self.input_json_dict['electron_group_velocities'] = [x.get() for x in self.electron_group_velocities]
+            self.input_json_dict['electron_relaxation_times'] = [x.get() for x in self.electron_relaxation_times]
+            self.input_json_dict['electron_effective_masses'] = [x.get() for x in self.electron_effective_masses]
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        # Add phonon parameters
+        if run_type == RunType.PHONON.value or run_type == RunType.BOTH.value:
+            
+            self.input_json_dict['phonon_ev_paths'] = [x.get() for x in self.phonon_ev_file_paths]
+            self.input_json_dict['phonon_dos_paths'] = [x.get() for x in self.phonon_dos_file_paths]
+            self.input_json_dict['phonon_tau_paths'] = [x.get() for x in self.phonon_tau_file_paths]
+
+            self.input_json_dict['phonon_group_velocities'] = [x.get() for x in self.phonon_group_velocities]
+            self.input_json_dict['phonon_relaxation_times'] = [x.get() for x in self.phonon_relaxation_times]
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        # Write the JSON object to the prefs file
+        with open(self.prefs_file_path, 'w') as prefs_file:
+            json.dump(self.input_json_dict, prefs_file)
+
+        # Run the backend (NOTE: blocking)
+        try:
+            if run_type == RunType.ELECTRON.value:
+                self.backend.run_seaqt_electron_only()
+            elif run_type == RunType.PHONON.value:
+                self.backend.run_seaqt_phonon_only()
+            elif run_type == RunType.BOTH.value:
+                self.backend.run_seaqt()
+            else:
+                self.pop_up_error(f'Invalid Run Type: {run_type}.\n\nThis could be due to faulty input data or parameters; or due to an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
+                self.update_plot(PlotNumber.ERROR.value)
+                return
+            
+            self.update_plot(PlotNumber.DATA_PROCESSED_SUCCESSFULLY.value)
+        except:
+            self.pop_up_error('SEAQT Backend Encountered an Error.\n\nThis could be due to faulty input data or parameters; or due to an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
+            self.update_plot(PlotNumber.ERROR.value)
+            return
+        
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        # Block the new and load buttons
+        self.new_run_button['state'] = DISABLED
+        self.load_run_button['state'] = DISABLED
+
+        # Unlock replot, reset, and save buttons
+        self.plot_button['state'] = NORMAL
+        self.reset_button['state'] = NORMAL
+        self.save_button['state'] = NORMAL
+
+        # Update the plotting buttons
+        self.update_plot_check_buttons(True)
+
+        
+    def load_previous_run(self) -> None:
+        '''
+        Have the user select a previous run file to load into memory.
+        '''
+        # Have the user select a file
+        archive_file_path = StringVar()
+        self.select_file(self.SEAQT_RUN_FILETYPE, archive_file_path)
+
+        # If no file was selected, return
+        if not archive_file_path or not archive_file_path.get() or archive_file_path.get() == '':
+            self.pop_up_error('No Archive File Selected')
+            return
+        
+        # Unpack and check the files
+        try:
+            with ZipFile(archive_file_path.get(), 'r') as zf:
+                for filename in self.SEAQT_RUN_FILENAMES:
+                    zf.extract(filename, self.TEMP_DIRECTORY_PATH)
+        except:
+            self.pop_up_error('Failed to unpack SEAQT archive; data may be missing or corrupt.')
+            return    
+        
+        # Copy relevant values from JSON file to class vairables
+        try:
+            with open(self.prefs_file_path, 'r') as prefs_file:
+                prefs_json = json.load(prefs_file)
+                self.number_of_blocks.set(prefs_json['number_of_blocks'])
+                self.selected_run_type.set(prefs_json['run_type'])
+
+                ###########################
+                # TODO: Import ALL values #
+                ###########################
+        except:
+            self.pop_up_error('Failed to read parameters from preferences file; data may be missing or corrupted.')
+            return
+
+        # Disable new, load, and save buttons
+        self.new_run_button['state'] = DISABLED
+        self.load_run_button['state'] = DISABLED
+        self.save_button['state'] = DISABLED
+
+        # Enable reset and plot buttons
+        self.reset_button['state'] = NORMAL
+        self.plot_button['state'] = NORMAL
+
+        # Update the plotting buttons
+        self.update_plot_radio_buttons(True)
+        self.update_plot_check_buttons(True)
+
+        # Update plot image
+        self.update_plot(PlotNumber.DATA_LOADED_SUCCESSFULLY.value)
     
 
     def update_plot(self, filenum: int) -> None:
@@ -1485,52 +1586,6 @@ class SEAQTGui():
         self.data_frame_image_frame.configure(image=self.data_frame_image)
 
 
-    def start_data_process(self) -> None:
-        '''
-        Run the SEAQT backend using the desired handler.
-        '''
-        # Aggregate the input data into a JSON object
-        self.input_json_dict['e_ev_path'] = self.electron_ev_file_path.get()
-        self.input_json_dict['e_dos_path'] = self.electron_dos_file_path.get()
-        self.input_json_dict['p_ev_path'] = self.phonon_ev_file_path.get()
-        self.input_json_dict['p_dos_path'] = self.phonon_dos_file_path.get()
-        self.input_json_dict['fermi_energy'] = self.fermi_energy.get()
-        self.input_json_dict['velocities'] = self.phonon_group_velocities.get()
-        self.input_json_dict['relaxation'] = self.phonon_relaxation_time.get()
-        self.input_json_dict['subsystems'] = self.number_of_blocks.get()
-        self.input_json_dict['sub_size'] = self.subsystems_size.get()
-        self.input_json_dict['temps'] = self.subsystem_temperatures_list
-        self.input_json_dict['time_duration'] = self.time_duration.get()
-        self.input_json_dict['time_type'] = self.selected_time_type.get()
-        self.input_json_dict['selected_subs'] = self.selected_blocks
-
-        # Write the JSON object to the prefs file
-        with open(self.prefs_file_path, 'w') as prefs_file:
-            json.dump(self.input_json_dict, prefs_file)
-
-        # Run the backend (NOTE: blocking)
-        try:
-            self.backend.run_seaqt()
-            self.update_plot(PlotNumber.DATA_PROCESSED_SUCCESSFULLY.value)
-        except:
-            self.pop_up_error('SEAQT Backend Encountered an Error.\n\nThis could be due to faulty input data or parameters; or due to an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
-            self.update_plot(PlotNumber.ERROR.value)
-            return
-
-        # Block the new and load buttons
-        self.new_run_button['state'] = DISABLED
-        self.load_run_button['state'] = DISABLED
-
-        # Unlock replot, reset, and save buttons
-        self.plot_button['state'] = NORMAL
-        self.reset_button['state'] = NORMAL
-        self.save_button['state'] = NORMAL
-
-        # Unlock the subsystem checkbuttons
-        for chk in self.subsystem_checkbuttons:
-            chk['state'] = NORMAL
-
-
     def replot(self) -> bool:
         '''
         Replot with the new selected subsystems.
@@ -1539,8 +1594,8 @@ class SEAQTGui():
         '''
         # Tally the selected subsystems
         self.selected_blocks = []
-        for i in range(len(self.subsystem_variables)):
-            if self.subsystem_variables[i].get():
+        for i in range(len(self.block_variables)):
+            if self.block_variables[i].get():
                 self.selected_blocks.append(i)
 
         if len(self.selected_blocks) == 0:
@@ -1565,9 +1620,8 @@ class SEAQTGui():
             self.pop_up_error('SEAQT Backend Encountered an Error.\n\nThis could be due to faulty input data or parameters; or due to an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
             return False
 
-        # Unlock radio buttons for plot selection
-        for btn in self.plot_radio_buttons:
-            btn['state'] = NORMAL
+        # Update plotting buttons
+        self.update_plot_radio_buttons(True)
 
         return True
 
@@ -1584,23 +1638,39 @@ class SEAQTGui():
         # If user selects 'YES', reset all values
         if user_choice:
 
-            # Reset file paths
-            self.electron_ev_file_path.set('')
-            self.electron_dos_file_path.set('')
-            self.phonon_ev_file_path.set('')
-            self.phonon_dos_file_path.set('')
-            
-            # Reset parameters to defaults
-            self.fermi_energy.set(self.DEFAULT_FERMI)
-            self.phonon_group_velocities.set(self.DEFAULT_VELOCITIES)
-            self.phonon_relaxation_time.set(self.DEFAULT_RELAXATION)
-            self.number_of_blocks.set(self.DEFAULT_NUM_BLOCKS)
-            self.selected_blocks = []
-            self.subsystems_size.set(self.DEFAULT_SUBS_SIZE)
-            self.subsystem_temperatures_string.set(self.DEFAULT_SUBS_TEMPS)
-            self.subsystem_temperatures_list = []
-            self.time_duration.set(self.DEFAULT_TIME_DURATION)
-            self.selected_time_type.set(self.DEFAULT_TIME_TYPE)   
+            self.number_of_blocks = IntVar(value=self.DEFAULT_NUM_BLOCKS)       # scalar
+            self.time_duration = DoubleVar(value=self.DEFAULT_TIME_DURATION)    # scalar
+            self.selected_time_type = IntVar(value=self.DEFAULT_TIME_TYPE)      # min or max
+            self.selected_run_type = IntVar(value=self.DEFAULT_RUN_TYPE)        # electron, phonon, or both
+            self.run_type_buttons = []
+
+            self.block_to_copy_from = IntVar(value=1)   # scalar 
+
+            self.block_sizes = []                       # DoubleVar
+            self.block_temperatures = []                # DoubleVar
+            self.fermi_energies = []                    # DoubleVar
+
+            self.electron_ev_file_paths = []            # StringVar
+            self.electron_dos_file_paths = []           # StringVar
+            self.electron_tau_file_paths = []           # StringVar
+            self.electron_group_velocities = []         # DoubleVar
+            self.electron_relaxation_times = []         # DoubleVar
+            self.electron_effective_masses = []         # DoubleVar
+
+            self.phonon_ev_file_paths = []              # StringVar
+            self.phonon_dos_file_paths = []             # StringVar
+            self.phonon_tau_file_paths = []             # StringVar
+            self.phonon_group_velocities = []           # DoubleVar
+            self.phonon_relaxation_times = []           # DoubleVar
+
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+            # Update the plotting buttons
+            self.update_plot_radio_buttons(False)
+            self.update_plot_check_buttons(False)
+
+            # Reset the displayed image (data not loaded)
+            self.update_plot(PlotNumber.DATA_NOT_LOADED.value)
 
             # Enable new and load buttons, disable reset, save, and export buttons
             self.new_run_button['state'] = NORMAL
@@ -1609,22 +1679,11 @@ class SEAQTGui():
             self.save_button['state'] = DISABLED
             self.export_button['state'] = DISABLED
 
-            # Disable all radio buttons and reset the selected one to default
-            self.selected_plot.set(PlotNumber.ELECTRON_TEMPERATURE.value)
-            for btn in self.plot_radio_buttons:
-                btn['state'] = DISABLED
-
-            # Disable checkbuttons and replot button
-            self.plot_button['state'] = DISABLED
-            for chk in self.subsystem_checkbuttons:
-                chk['state'] = DISABLED
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
             # Remove any old plots
             clear_matlab_meta()
             clear_plots()
-
-            # Reset the displayed image (data not loaded)
-            self.update_plot(PlotNumber.DATA_NOT_LOADED.value)
 
 
     def save_data(self) -> None:

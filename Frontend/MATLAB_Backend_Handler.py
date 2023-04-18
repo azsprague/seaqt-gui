@@ -26,7 +26,21 @@ class MATLABBackendHandler():
         :return: True iff the SEAQT backend was successfully started; False otherwise
         '''
         self.matlab_engine.start_seaqt(nargout=0)
+
+
+    def run_seaqt_electron_only(self) -> None:
+        '''
+        Comment
+        '''
+        self.matlab_engine.start_seaqt_electron_only(nargout=0)
     
+
+    def run_seaqt_phonon_only(self) -> None:
+        '''
+        Comment
+        '''
+        self.matlab_engine.start_seaqt_phonon_only(nargout=0)
+
 
     def generate_plot(self) -> None:
         '''
