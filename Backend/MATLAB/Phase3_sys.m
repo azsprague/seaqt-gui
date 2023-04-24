@@ -1,4 +1,4 @@
-function Phase3_sys()
+function Phase3_Sys()
 
 clear all;
 load tmp/System_description.mat;

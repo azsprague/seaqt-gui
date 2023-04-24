@@ -1,4 +1,4 @@
-function Phase4_plot()
+function Phase4_Plot()
 
 clear all;
 load tmp/System_description.mat;

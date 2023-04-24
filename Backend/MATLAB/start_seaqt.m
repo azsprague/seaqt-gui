@@ -1,5 +1,5 @@
 function start_seaqt()
 Phase1()
-Phase2_electron()
+Phase2_Electron()
 Phase2_Phonon()
-Phase3_sys()
+Phase3_Sys()

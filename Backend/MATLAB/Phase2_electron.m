@@ -1,4 +1,4 @@
-function Phase2_electron()
+function Phase2_Electron()
 
 %% Generate Electron Eigenstates and Relaxation Time
 clear all;
