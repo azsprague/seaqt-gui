@@ -1,4 +1,5 @@
 function Phase1()
+
 clear all;
 
 %% Constants
