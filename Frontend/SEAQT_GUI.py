@@ -387,7 +387,9 @@ class SEAQTGui():
     
     def update_plot_radio_buttons(self, enable: bool) -> None:
         '''
-        Comment
+        (Re) create the radio buttons for the plot to display.
+
+        :param enable: Boolean for whether to enable or disable the buttons
         '''
         # Create radio button frame
         if self.radio_button_frame != None:
@@ -447,7 +449,9 @@ class SEAQTGui():
 
     def update_plot_check_buttons(self, enable: bool) -> None:
         '''
-        Comment
+        (Re) create the check buttons for which blocks to plot
+
+        :param enable: Boolean for whether to enable or disable the buttons
         '''
         # Frame to hold the checkboxes
         if self.checkbox_frame != None:
@@ -682,7 +686,7 @@ class SEAQTGui():
 
     def update_number_of_blocks(self) -> None:
         '''
-        Comment
+        Remove or add one or more blocks to the existing ones.
         '''
         # Calculate the old and new sizes
         old_list_size = len(self.block_sizes)
@@ -766,7 +770,7 @@ class SEAQTGui():
     
     def update_block_data_window(self) -> None:
         '''
-        Comment
+        (Re) create the window containing the block parameters.
         '''
         # Create parameter frame
         if self.block_parameter_frame != None:
@@ -929,7 +933,7 @@ class SEAQTGui():
 
     def update_electron_tab(self) -> None:
         '''
-        Comment
+        (Re) create the tab for the electron local system inputs
         '''
         # Create master electron frame
         electron_frame = ttk.Frame(self.notebook)
@@ -1104,7 +1108,7 @@ class SEAQTGui():
 
     def update_phonon_tab(self) -> None:
         '''
-        Comment
+        (Re) create the tab for the phonon local system inputs
         '''
         # Create the master phonon frame
         phonon_frame = ttk.Frame(self.notebook)

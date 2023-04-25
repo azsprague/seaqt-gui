@@ -9,7 +9,7 @@ electron_ev_paths = gui_json_data.electron_ev_paths;
 electron_dos_paths = gui_json_data.electron_dos_paths;
 electron_tau_paths = gui_json_data.electron_tau_paths;
 
-% Get block parameter arrays from JSON data
+% Get block ("subsystem") parameter arrays from JSON data
 block_sizes = gui_json_data.block_sizes;
 fermi_energies = gui_json_data.fermi_energies;
 group_velocities = gui_json_data.electron_group_velocities;     % Not used?
@@ -72,4 +72,4 @@ for i = 1:(gui_json_data.number_of_blocks)
     dNdE_sys_e = [dNdE_sys_e; dNdE_sys_e_single.'];
 end
 
-save tmp/Electron.mat tau_e e_sys_e dNdE_sys_e
+save tmp/Electron.mat tau_e e_sys_e dNdE_sys_e e_sys_e_single

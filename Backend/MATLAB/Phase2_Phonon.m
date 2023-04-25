@@ -9,7 +9,7 @@ phonon_ev_paths = gui_json_data.phonon_ev_paths;
 phonon_dos_paths = gui_json_data.phonon_dos_paths;
 phonon_tau_paths = gui_json_data.phonon_tau_paths;
 
-% Get block parameter arrays from JSON data
+% Get block ("subsystem") parameter arrays from JSON data
 block_sizes = gui_json_data.block_sizes;
 group_velocities = gui_json_data.phonon_group_velocities;
 relax_times = gui_json_data.phonon_relaxation_times;
@@ -70,4 +70,4 @@ for i = 1:(gui_json_data.number_of_blocks)
 
 end
 
-save tmp/Phonon.mat tau_ph e_sys_ph dNdE_sys_ph
+save tmp/Phonon.mat tau_ph e_sys_ph dNdE_sys_ph e_sys_ph_single
