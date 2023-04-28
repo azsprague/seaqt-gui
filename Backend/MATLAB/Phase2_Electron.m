@@ -18,26 +18,26 @@ effective_masses = gui_json_data.electron_effective_masses;
 
 % Prepare finished arrays
 tau_e = [];
-e_sys_e = [];
+E_sys_e = [];
 dNdE_sys_e = [];
 
 % Loop over all electron files (total number of blocks or "subsystems")
 for i = 1:(gui_json_data.number_of_blocks)
 
     % Get current electron files
-    e_sys_name = string(electron_ev_paths(i));
-    e_sys_dos_name = string(electron_dos_paths(i));
-    e_sys_tau_name = string(electron_tau_paths(i));
+    E_sys_name = string(electron_ev_paths(i));
+    E_sys_dos_name = string(electron_dos_paths(i));
+    E_sys_tau_name = string(electron_tau_paths(i));
 
     % Convert files to arrays
-    e_sys = table2array(readtable(e_sys_name));
-    e_sys_dos = table2array(readtable(e_sys_dos_name));
+    E_sys = table2array(readtable(E_sys_name));
+    E_sys_dos = table2array(readtable(E_sys_dos_name));
 
     % Check for existence of tau file
-    if strcmp(e_sys_tau_name, "")
+    if strcmp(E_sys_tau_name, "")
         has_tau_file = 0;
     else
-        e_sys_tau = table2array(readtable(e_sys_tau_name));
+        E_sys_tau = table2array(readtable(E_sys_tau_name));
         has_tau_file = 1;
     end
 
@@ -48,28 +48,28 @@ for i = 1:(gui_json_data.number_of_blocks)
     bt = relax_times(i);                                % Electron relaxation time
 
     % Loop over all rows in current arrays
-    for j = 1:(length(e_sys_dos))
+    for j = 1:(length(E_sys_dos))
 
         % Universal electron energy in Joules
-        e_sys_e_single(j) = e_sys(j) * 1.60218e-19;     %% e-19?
+        E_sys_e_single(j) = E_sys(j) * 1.60218e-19;     %% e-19?
         
         % Universal electron DOS in 1/Volume
-        dNdE_sys_e_single(j) = e_sys_dos(j) / (1.97e-28);
+        dNdE_sys_e_single(j) = E_sys_dos(j) / (1.97e-28);
         
         if has_tau_file
             % Pull tau value from array
-            tau_e_single(j) = e_sys_tau(j);
+            tau_e_single(j) = E_sys_tau(j);
         else
             % Calculate tau value
-            tau_e_single(j) = (3 * m_e * ef * ab^2 / (2*bt)) / e_sys_e_single(j);
+            tau_e_single(j) = (3 * m_e * ef * ab^2 / (2*bt)) / E_sys_e_single(j);
         end
 
     end
 
     % Append current electron values to finished arrays
     tau_e = [tau_e; tau_e_single.'];                   
-    e_sys_e = [e_sys_e; e_sys_e_single.'];           
+    E_sys_e = [E_sys_e; E_sys_e_single.'];           
     dNdE_sys_e = [dNdE_sys_e; dNdE_sys_e_single.'];
 end
 
-save tmp/Electron.mat tau_e e_sys_e dNdE_sys_e e_sys_e_single
+save tmp/Electron.mat tau_e E_sys_e dNdE_sys_e E_sys_e_single
