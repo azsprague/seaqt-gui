@@ -731,9 +731,8 @@ class SEAQTGui():
             self.phonon_group_velocities += [DoubleVar() for _ in range(size_delta)]
             self.phonon_relaxation_times += [DoubleVar() for _ in range(size_delta)]
 
-        # If there was a change, update the UI
-        if size_delta > 0:
-            self.update_block_selection()
+        # Update the UI
+        self.update_block_selection()
 
     
     def update_block_selection(self) -> None:
@@ -1536,13 +1535,66 @@ class SEAQTGui():
         # Copy relevant values from JSON file to class vairables
         try:
             with open(self.prefs_file_path, 'r') as prefs_file:
-                prefs_json = json.load(prefs_file)
-                self.number_of_blocks.set(prefs_json['number_of_blocks'])
-                self.selected_run_type.set(prefs_json['run_type'])
 
-                ###########################
-                # TODO: Import ALL values #
-                ###########################
+                # Load JSON file
+                prefs_json = json.load(prefs_file)
+
+                # Extract global variables
+                num_blocks = prefs_json['number_of_blocks']
+                run_type = prefs_json['run_type']
+
+                self.number_of_blocks.set(num_blocks)
+                self.selected_run_type.set(run_type)
+                self.time_duration.set(prefs_json['time_duration'])
+                self.selected_time_type.set(prefs_json['time_type'])
+
+                # Reset global arrays
+                self.block_sizes = []                       # DoubleVar
+                self.block_temperatures = []                # DoubleVar
+                self.fermi_energies = []                    # DoubleVar
+
+                self.electron_ev_file_paths = []            # StringVar
+                self.electron_dos_file_paths = []           # StringVar
+                self.electron_tau_file_paths = []           # StringVar
+                self.electron_group_velocities = []         # DoubleVar
+                self.electron_relaxation_times = []         # DoubleVar
+                self.electron_effective_masses = []         # DoubleVar
+
+                self.phonon_ev_file_paths = []              # StringVar
+                self.phonon_dos_file_paths = []             # StringVar
+                self.phonon_tau_file_paths = []             # StringVar
+                self.phonon_group_velocities = []           # DoubleVar
+                self.phonon_relaxation_times = []           # DoubleVar
+
+                # Load each block's parameters
+                for i in range(num_blocks):
+
+                    # Shared parameters
+                    self.block_sizes += DoubleVar(value=prefs_json['block_sizes'][i])
+                    self.block_temperatures += DoubleVar(value=prefs_json['block_temperatures'][i])
+                    self.fermi_energies += DoubleVar(value=prefs_json['fermi_energies'][i])
+
+                    # Electron-only parameters
+                    if run_type == RunType.ELECTRON.value or run_type == RunType.BOTH.value:
+
+                        self.electron_ev_file_paths += StringVar(value=prefs_json['electron_ev_paths'][i])
+                        self.electron_dos_file_paths += StringVar(value=prefs_json['electron_dos_paths'][i])
+                        self.electron_tau_file_paths += StringVar(value=prefs_json['electron_tau_paths'][i])
+
+                        self.electron_group_velocities += DoubleVar(value=prefs_json['electron_group_velocities'][i])
+                        self.electron_relaxation_times += DoubleVar(value=prefs_json['electron_relaxation_times'][i])
+                        self.electron_effective_masses += DoubleVar(value=prefs_json['electron_effective_masses'][i])
+
+                    # Phonon-only parameters
+                    if run_type == RunType.PHONON.value or run_type == RunType.BOTH.value:
+                        
+                        self.phonon_ev_file_paths += StringVar(value=prefs_json['phonon_ev_paths'][i])
+                        self.phonon_dos_file_paths += StringVar(value=prefs_json['phonon_dos_paths'][i])
+                        self.phonon_tau_file_paths += StringVar(value=prefs_json['phonon_tau_paths'][i])
+
+                        self.phonon_group_velocities += DoubleVar(value=prefs_json['phonon_group_velocities'][i])
+                        self.phonon_relaxation_times += DoubleVar(value=prefs_json['phonon_relaxation_times'][i])
+
         except:
             self.pop_up_error('Failed to read parameters from preferences file; data may be missing or corrupted.')
             return
