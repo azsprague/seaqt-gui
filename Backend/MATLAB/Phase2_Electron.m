@@ -61,7 +61,7 @@ for i = 1:(gui_json_data.number_of_blocks)
             tau_e_single(j) = E_sys_tau(j);
         else
             % Calculate tau value
-            tau_e_single(j) = (3 * m_e * ef * ab^2 / (2*bt)) / E_sys_e_single(j);
+            tau_e_single(j) = abs((3 * m_e * ef * ab^2 / (2*bt)) / E_sys_e_single(j));
         end
 
     end

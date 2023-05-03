@@ -1,0 +1,25 @@
+Sample Input Parameters
+=======================
+
+Number of Blocks:               20
+Run Length:                     100 (min)
+Run Type:                       Both
+
+Block Size:                     1e-7
+Block Temperature:              295 (1-10), 300 (11-20)
+Fermi Energy:                   6
+
+Electron EV Data:               Electron_EV.xlsx
+Electron DOS Data:              Electron_DOS.xlsx
+Electron Tau Data:              (none)
+
+Electron Group Velocities:      (none)
+Electorn Relaxation Time:       5e-15
+Electron Effective Mass:        1
+
+Phonon EV Data:                 Phonon_EV.xlsx
+Phonon DOS Data:                Phonon_DOS.xlsx
+Phonon Tau Data:                (none)
+
+Phonon Group Velocities:        6000
+Phonon Relaxation Time:         5e-12

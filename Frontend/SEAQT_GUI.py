@@ -112,23 +112,32 @@ class SEAQTGui():
 
     PLOT_BUTTON_PAD_Y = 3
 
-    DEFAULT_NUM_BLOCKS = 10
-    DEFAULT_SUB_SIZE = 1 * (10**-7)
-    DEFAULT_SUB_TEMP = 300
-    DEFAULT_FERMI = 6
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-    DEFAULT_ELECTRON_VELOCITIES = 6000
-    DEFAULT_ELECTRON_RELAXATION = 50 * (10**-16)
-    DEFAULT_ELECTRON_EFFECTIVE_MASS = 1
-
-    DEFAULT_PHONON_VELOCITIES = 6000
-    DEFAULT_PHONON_RELAXATION = 5 * (10**-12)
-    
+    DEFAULT_NUM_BLOCKS = 20
     DEFAULT_TIME_DURATION = 100
     DEFAULT_TIME_TYPE = TimeType.MIN.value
     DEFAULT_RUN_TYPE = RunType.BOTH.value
 
+    DEFAULT_BLOCK_SIZE = 1 * (10**-7)
+    DEFAULT_BLOCK_TEMP_A = 295
+    DEFAULT_BLOCK_TEMP_B = 300
+    DEFAULT_FERMI = 6
+
+    DEFAULT_ELECTRON_DOS_FILENAME = 'Electron_DOS.xlsx'
+    DEFAULT_ELECTRON_EV_FILENAME = 'Electron_EV.xlsx'
+    DEFAULT_ELECTRON_RELAXATION = 5 * (10**-15)
+    DEFAULT_ELECTRON_EFFECTIVE_MASS = 1
+
+    DEFAULT_PHONON_DOS_FILENAME = 'Phonon_DOS.xlsx'
+    DEFAULT_PHONON_EV_FILENAME = 'Phonon_EV.xlsx'
+    DEFAULT_PHONON_VELOCITIES = 6000
+    DEFAULT_PHONON_RELAXATION = 5 * (10**-12)
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
     TEMP_DIRECTORY_PATH = 'tmp'
+    EXAMPLE_DATA_DIRECTORY_PATH = 'Example Data'
     PARAM_PREFERENCES_FILE_NAME = 'seaqt_prefs.json'
 
     PLOT_NAMES = [
@@ -501,6 +510,9 @@ class SEAQTGui():
         )
         top_window.grid(column=0, row=0)
 
+        top_top_window = ttk.Frame(top_window)
+        top_top_window.pack()
+
         # Create master frame for block parameters
         self.block_master_frame = ttk.Frame(
             input_window,
@@ -512,7 +524,7 @@ class SEAQTGui():
 
         # Create base parameter frame
         base_parameter_input = ttk.LabelFrame(
-            top_window,
+            top_top_window,
             text='Base Parameters',
             padding=10,
             relief=SOLID
@@ -521,14 +533,14 @@ class SEAQTGui():
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-        # Number of subsystems label
+        # Number of blocks label
         ttk.Label(
             base_parameter_input,
             text='Number of Blocks',
             width=17
         ).grid(column=0, row=0)
 
-        # Number of subsystems input (spinbox)
+        # Number of blocks input (spinbox)
         ttk.Spinbox(
             base_parameter_input,
             from_=1,
@@ -647,7 +659,7 @@ class SEAQTGui():
 
         # Create info frame
         info_frame = ttk.LabelFrame(
-            top_window, 
+            top_top_window, 
             text='Info',
             padding=10,
             relief=SOLID
@@ -659,6 +671,19 @@ class SEAQTGui():
             info_frame,
             text='Block: a pair of local systems (electron & phonon)\n\nTau: the relaxation parameter'
         ).grid(column=0, row=0, sticky=NW)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        ttk.Separator(top_window, orient=HORIZONTAL).pack(fill=X, pady=7)
+
+        ttk.Button(
+            top_window,
+            padding=5,
+            text='Import Default Data and Parameters',
+            command=self.import_default_settings
+        ).pack(pady=7)
+
+        ttk.Separator(top_window, orient=HORIZONTAL).pack(fill=X, pady=7)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
@@ -682,6 +707,69 @@ class SEAQTGui():
             text='Cancel',
             command=partial(self.cancel_data_input, input_window)
         ).grid(column=1, row=0, padx=5)
+
+
+    def import_default_settings(self) -> None:
+        '''
+        Use the default parameters for this run.
+        '''
+        # Update number of blocks
+        self.number_of_blocks.set(self.DEFAULT_NUM_BLOCKS)
+        self.update_number_of_blocks()
+
+        # Update run length and type
+        self.time_duration.set(self.DEFAULT_TIME_DURATION)
+        self.selected_time_type.set(self.DEFAULT_TIME_TYPE)
+        self.selected_run_type.set(self.DEFAULT_RUN_TYPE)
+        self.update_block_data_window()
+
+        # Prepare filepaths
+        example_data_directory = os.path.join(os.getcwd(), self.EXAMPLE_DATA_DIRECTORY_PATH)
+        
+        electron_ev_path = os.path.join(example_data_directory, self.DEFAULT_ELECTRON_EV_FILENAME)
+        if not os.path.isfile(electron_ev_path):
+            self.pop_up_error(f'Could not import default settings\n\nFile {self.DEFAULT_ELECTRON_EV_FILENAME} is missing or corrupted.')
+            return
+        
+        electron_dos_path = os.path.join(example_data_directory, self.DEFAULT_ELECTRON_DOS_FILENAME)
+        if not os.path.isfile(electron_dos_path):
+            self.pop_up_error(f'Could not import default settings\n\nFile {self.DEFAULT_ELECTRON_DOS_FILENAME} is missing or corrupted.')
+            return
+        
+        phonon_ev_path = os.path.join(example_data_directory, self.DEFAULT_PHONON_EV_FILENAME)
+        if not os.path.isfile(phonon_ev_path):
+            self.pop_up_error(f'Could not import default settings\n\nFile {self.DEFAULT_PHONON_EV_FILENAME} is missing or corrupted.')
+            return
+        
+        phonon_dos_path = os.path.join(example_data_directory, self.DEFAULT_PHONON_DOS_FILENAME)
+        if not os.path.isfile(phonon_dos_path):
+            self.pop_up_error(f'Could not import default settings\n\nFile {self.DEFAULT_PHONON_DOS_FILENAME} is missing or corrupted.')
+            return
+        
+        # Update each block
+        num_blocks = self.number_of_blocks.get()
+        for i in range(num_blocks):
+
+            # Update shared parameters
+            self.block_sizes[i].set(self.DEFAULT_BLOCK_SIZE)
+            self.fermi_energies[i].set(self.DEFAULT_FERMI)
+
+            if i < (num_blocks / 2):
+                self.block_temperatures[i].set(self.DEFAULT_BLOCK_TEMP_A)
+            else:
+                self.block_temperatures[i].set(self.DEFAULT_BLOCK_TEMP_B)
+
+            # Update electron parameters
+            self.electron_ev_file_paths[i].set(electron_ev_path)
+            self.electron_dos_file_paths[i].set(electron_dos_path)
+            self.electron_relaxation_times[i].set(self.DEFAULT_ELECTRON_RELAXATION)
+            self.electron_effective_masses[i].set(self.DEFAULT_ELECTRON_EFFECTIVE_MASS)
+
+            # Update phonon parameters
+            self.phonon_ev_file_paths[i].set(phonon_ev_path)
+            self.phonon_dos_file_paths[i].set(phonon_dos_path)
+            self.phonon_group_velocities[i].set(self.DEFAULT_PHONON_VELOCITIES)
+            self.phonon_relaxation_times[i].set(self.DEFAULT_PHONON_RELAXATION)
 
 
     def update_number_of_blocks(self) -> None:
@@ -755,15 +843,16 @@ class SEAQTGui():
 
         # Create radio buttons
         self.block_radio_buttons = []
-        for i in range(self.number_of_blocks.get()):
+        num_blocks = self.number_of_blocks.get()
+        for i in range(num_blocks):
             rb = ttk.Radiobutton(
                 self.block_input_selection_frame,
-                text=f"Block {i + 1}",
+                text=f"{i + 1}",
                 variable=self.selected_block_input,
                 command=self.update_block_data_window,
                 value=i + 1
             )
-            rb.grid(column=0, row=i, padx=3, pady=3, sticky=W)
+            rb.grid(column=(i // int((num_blocks / 2) + 0.5)) % 2, row=i % int((num_blocks / 2) + 0.5), padx=8, pady=4, sticky=W)
             self.block_radio_buttons.append(rb)
 
     
@@ -778,7 +867,7 @@ class SEAQTGui():
         self.block_parameter_frame = ttk.LabelFrame(
             self.block_master_frame,
             text="Block Data and Parameters",
-            padding=10,
+            padding=5,
             relief=SOLID
         )
         self.block_parameter_frame.grid(column=1, row=0, padx=5, pady=5)
@@ -789,17 +878,18 @@ class SEAQTGui():
 
         # Create a combined frame for inputs
         combined_input_frame = ttk.Frame(self.block_parameter_frame)
-        combined_input_frame.grid(column=0, row=0)
+        combined_input_frame.pack(fill=X)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
         # Give users the option to load preferences from other block
         copy_input_frame = ttk.Frame(
             combined_input_frame,
-            padding=10,
-            relief=SOLID
+            padding=10
         )
-        copy_input_frame.grid(column=0, row=0, padx=5, pady=5)
+        copy_input_frame.pack()
+
+        ttk.Separator(combined_input_frame, orient=HORIZONTAL).pack(fill=X)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
@@ -833,10 +923,11 @@ class SEAQTGui():
         # Create frame for general parameter inputs
         param_input_frame = ttk.Frame(
             combined_input_frame,
-            padding=10,
-            relief=SOLID
+            padding=10
         )
-        param_input_frame.grid(column=0, row=1, padx=5, pady=5)
+        param_input_frame.pack()
+
+        ttk.Separator(combined_input_frame, orient=HORIZONTAL).pack(fill=X)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
@@ -914,7 +1005,7 @@ class SEAQTGui():
             self.block_parameter_frame,
             padding=10
         )
-        self.notebook.grid(column=0, row=1, padx=5, pady=5)
+        self.notebook.pack()
 
         if self.selected_run_type.get() == RunType.BOTH.value:
             self.update_electron_tab()
@@ -1478,6 +1569,8 @@ class SEAQTGui():
 
         # Run the backend (NOTE: blocking)
         try:
+            self.update_plot(PlotNumber.DATA_PROCESSING.value)
+
             if run_type == RunType.ELECTRON.value:
                 self.backend.run_seaqt_electron_only()
             elif run_type == RunType.PHONON.value:
@@ -1538,6 +1631,7 @@ class SEAQTGui():
 
                 # Load JSON file
                 prefs_json = json.load(prefs_file)
+                self.input_json_dict = prefs_json
 
                 # Extract global variables
                 num_blocks = prefs_json['number_of_blocks']
@@ -1570,31 +1664,30 @@ class SEAQTGui():
                 for i in range(num_blocks):
 
                     # Shared parameters
-                    self.block_sizes += DoubleVar(value=prefs_json['block_sizes'][i])
-                    self.block_temperatures += DoubleVar(value=prefs_json['block_temperatures'][i])
-                    self.fermi_energies += DoubleVar(value=prefs_json['fermi_energies'][i])
+                    self.block_sizes.append(DoubleVar(value=prefs_json['block_sizes'][i]))
+                    self.block_temperatures.append(DoubleVar(value=prefs_json['block_temperatures'][i]))
+                    self.fermi_energies.append(DoubleVar(value=prefs_json['fermi_energies'][i]))
 
                     # Electron-only parameters
                     if run_type == RunType.ELECTRON.value or run_type == RunType.BOTH.value:
 
-                        self.electron_ev_file_paths += StringVar(value=prefs_json['electron_ev_paths'][i])
-                        self.electron_dos_file_paths += StringVar(value=prefs_json['electron_dos_paths'][i])
-                        self.electron_tau_file_paths += StringVar(value=prefs_json['electron_tau_paths'][i])
+                        self.electron_ev_file_paths.append(StringVar(value=prefs_json['electron_ev_paths'][i]))
+                        self.electron_dos_file_paths.append(StringVar(value=prefs_json['electron_dos_paths'][i]))
+                        self.electron_tau_file_paths.append(StringVar(value=prefs_json['electron_tau_paths'][i]))
 
-                        self.electron_group_velocities += DoubleVar(value=prefs_json['electron_group_velocities'][i])
-                        self.electron_relaxation_times += DoubleVar(value=prefs_json['electron_relaxation_times'][i])
-                        self.electron_effective_masses += DoubleVar(value=prefs_json['electron_effective_masses'][i])
+                        self.electron_group_velocities.append(DoubleVar(value=prefs_json['electron_group_velocities'][i]))
+                        self.electron_relaxation_times.append(DoubleVar(value=prefs_json['electron_relaxation_times'][i]))
+                        self.electron_effective_masses.append(DoubleVar(value=prefs_json['electron_effective_masses'][i]))
 
                     # Phonon-only parameters
                     if run_type == RunType.PHONON.value or run_type == RunType.BOTH.value:
                         
-                        self.phonon_ev_file_paths += StringVar(value=prefs_json['phonon_ev_paths'][i])
-                        self.phonon_dos_file_paths += StringVar(value=prefs_json['phonon_dos_paths'][i])
-                        self.phonon_tau_file_paths += StringVar(value=prefs_json['phonon_tau_paths'][i])
+                        self.phonon_ev_file_paths.append(StringVar(value=prefs_json['phonon_ev_paths'][i]))
+                        self.phonon_dos_file_paths.append(StringVar(value=prefs_json['phonon_dos_paths'][i]))
+                        self.phonon_tau_file_paths.append(StringVar(value=prefs_json['phonon_tau_paths'][i]))
 
-                        self.phonon_group_velocities += DoubleVar(value=prefs_json['phonon_group_velocities'][i])
-                        self.phonon_relaxation_times += DoubleVar(value=prefs_json['phonon_relaxation_times'][i])
-
+                        self.phonon_group_velocities.append(DoubleVar(value=prefs_json['phonon_group_velocities'][i]))
+                        self.phonon_relaxation_times.append(DoubleVar(value=prefs_json['phonon_relaxation_times'][i]))
         except:
             self.pop_up_error('Failed to read parameters from preferences file; data may be missing or corrupted.')
             return

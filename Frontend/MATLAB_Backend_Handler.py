@@ -46,4 +46,4 @@ class MATLABBackendHandler():
         '''
         Run only the Phase 4 of the SEAQT code (plotting).
         '''
-        self.matlab_engine.Phase4_plot(nargout=0)
+        self.matlab_engine.Phase4_Plot(nargout=0)

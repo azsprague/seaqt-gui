@@ -100,6 +100,7 @@ ts = 0;
 % Extract time type and duration from gui
 time_duration = gui_json_data.time_duration;
 time_type = gui_json_data.time_type;
+
 if time_type == 1
     tf = time_duration * min(tau);
 elseif time_type == 2
