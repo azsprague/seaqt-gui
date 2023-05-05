@@ -1748,7 +1748,7 @@ class SEAQTGui():
                 self.selected_blocks.append(i)
 
         if len(self.selected_blocks) == 0:
-            self.pop_up_error('No Subsystem(s) Selected. Please Choose at Least One.')
+            self.pop_up_error('No Block(s) Selected. Please Choose at Least One.')
             return False
         
         self.input_json_dict['selected_subs'] = self.selected_blocks
@@ -1764,6 +1764,16 @@ class SEAQTGui():
         # Replot
         try:
             self.backend.generate_plot()
+
+            run_type = self.selected_run_type.get()
+            if run_type == RunType.ELECTRON.value or run_type == RunType.BOTH.value:
+                self.selected_plot.set(PlotNumber.ELECTRON_TEMPERATURE.value)
+            elif run_type == RunType.PHONON.value:
+                self.selected_plot.set(PlotNumber.PHONON_TEMPERATURE.value)
+            else:
+                self.pop_up_error(f'Invalid Run Type: {run_type}.\n\nThis could be due to faulty input data or parameters; or due to an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
+                return False
+
             self.update_plot(self.selected_plot.get())
         except:
             self.pop_up_error('SEAQT Backend Encountered an Error.\n\nThis could be due to faulty input data or parameters; or due to an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.')
