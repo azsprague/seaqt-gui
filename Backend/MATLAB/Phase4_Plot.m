@@ -55,12 +55,14 @@ if run_type == 1 || run_type == 3
     
     T_e = [];
     for j = 1:max_T_index/100
-        T_e_T = [];                 
+        T_e_T = [];     
+
         for i = total_blocks
-            temp_y = y_T(j,(i-1)*System_length_e+1:i*System_length_e);
-            T_e_1 = [ones(System_length_e,1) E_sys(1:System_length_e)./kb]\temp_y';     % calculate temperature from y
-            T_e_T = [T_e_T 1/T_e_1(2)];
+            temp_y = y_T(j, (i - 1) * System_length_e + 1:i*System_length_e);
+            T_e_1 = [ones(System_length_e, 1) E_sys(1:System_length_e)./kb]\temp_y';     % calculate temperature from y
+            T_e_T = [T_e_T 1 / T_e_1(2)];
         end
+
         T_e = [T_e; T_e_T];
     end
     
@@ -81,12 +83,14 @@ if run_type == 1 || run_type == 3
     figure('Visible', 'off'); hold on; grid;
     
     N_e = [];
-    for j = 1:max_T_index/100
+    for j = 1:max_T_index / 100
         N_e_T = [];
+
         for i = total_blocks
-            temp_N_y = N_y_T(j,(i-1)*System_length_e+1:i*System_length_e);
+            temp_N_y = N_y_T(j, (i - 1) * System_length_e + 1:i*System_length_e);
             N_e_T = [N_e_T sum(temp_N_y)];
         end
+
         N_e = [N_e; N_e_T];
     end
     
@@ -110,7 +114,7 @@ if run_type == 1 || run_type == 3
     for j = 1:max_T_index/100
         E_e_T = []; 
         for i = total_blocks
-            temp_E_y = E_y_T(j,(i-1)*System_length_e+1:i*System_length_e);
+            temp_E_y = E_y_T(j, (i - 1) * System_length_e + 1:i*System_length_e);
             E_e_T = [E_e_T sum(temp_E_y)];
         end
         E_e = [E_e; E_e_T];
@@ -134,9 +138,10 @@ if run_type == 1 || run_type == 3
     
     e_charge = 1.60217663e-19;      % in columbs
     ej = 1.60218e-19;               % ev to J
-    ab = 1e-7;                      % size of subsystems (TODO: FIX)
     boltz = 1.380649e-23;
     em = 9.109e-31;
+
+    block_sizes = gui_json_data.block_sizes;
 
     E_c = [];
 
@@ -145,15 +150,18 @@ if run_type == 1 || run_type == 3
 
         for i = total_blocks
             up = 0;
+            ab = block_sizes(i);
 
             for k = 1:System_length_e
                 am = (i - 1) * System_length_e + k;
-    
                 fi = (e_charge^2) / (boltz * T_e(j, i));
                 se = (ab^2) / electron_tau(am);
-     
                 temp = electron_y_T(j, am);
+
                 th = exp(temp) / ((exp(temp) + 1)^2);
+                if isnan(th)
+                    th = 0;
+                end
 
                 fr = electron_dos(am);
                 ff = electron_ev((i - 1) * System_length_e + 2) - electron_ev((i - 1) * System_length_e + 1);
@@ -195,6 +203,7 @@ if run_type == 1 || run_type == 3
             temp_t_s = 0;
             up = 0;
             down = 0;
+            ab = block_sizes(i);
 
             for k = 1:System_length_e
                 len = (i - 1) * System_length_e + k;
@@ -203,6 +212,10 @@ if run_type == 1 || run_type == 3
 
                 beg = (e_charge^2 * (-electron_dos(len)) * ab^2 / (electron_tau(len)));
                 fez = exp(temp) / (boltz * T_e(j, i) * (exp(temp) + 1)^2);
+                if isnan(fez)
+                    fez = 0;
+                end
+
                 up = up + ((electron_ev(len) + Ef_sys_e(len)) * fez * beg * ch);
                 down = down + beg * fez * ch;
             end
@@ -238,31 +251,31 @@ if run_type == 2 || run_type == 3
     load tmp/Time_Evolution.mat;
     
     T = T(1:100:max_T_index);
-    y_T = y_T(1:100:max_T_index,System_length_e*System_num+1:System_length*System_num);
-    E_sys = E_sys(System_length_e*System_num+1:System_length*System_num);
-    dNdE_sys = dNdE_sys(System_length_e*System_num+1:System_length*System_num);
-    tau_sys = tau(System_length_e*System_num+1:System_length*System_num);
-    p_y = 1./(exp(y_T)-1);                          % occupation probability of every mode
+    y_T = y_T(1:100:max_T_index, System_length_e * System_num + 1:System_length * System_num);
+    E_sys = E_sys(System_length_e * System_num + 1:System_length * System_num);
+    dNdE_sys = dNdE_sys(System_length_e * System_num + 1:System_length * System_num);
+    tau_sys = tau(System_length_e * System_num + 1:System_length * System_num);
+
+    p_y = 1./(exp(y_T) - 1);                            % occupation probability of every mode
+    N_y_T = p_y.*(ones(length(T), 1) * dNdE_sys');      % phonon number at each mode
+    E_y_T = N_y_T.*(ones(length(T), 1) * E_sys');       % contribution from each mode to the system phonon energy
+    beta_T = y_T./(ones(length(T), 1) * E_sys');        % 1/k_bT for each mode
     
-    N_y_T = p_y.*(ones(length(T),1)*dNdE_sys');     % phonon number at each mode
-    E_y_T = N_y_T.*(ones(length(T),1)*E_sys');      % contribution from each mode to the system phonon energy
-    beta_T = y_T./(ones(length(T),1)*E_sys');       % 1/k_bT for each mode
+    E_T_ph = sum((N_y_T.*(ones(length(T), 1) * E_sys')), 2);        % total phonon energy
     
-    E_T_ph = sum((N_y_T.*(ones(length(T),1)*E_sys')),2);    % total phonon energy
-    
-    phonon_ev=E_sys;
-    phonon_dos=dNdE_sys;
-    phonon_beta=beta_T;
-    phonon_tau=tau_sys;
-    phonon_y_T=y_T;
-    phonon_p_y=p_y;
-    phonon_length=length(E_sys)/System_num;
+    phonon_ev = E_sys;
+    phonon_dos = dNdE_sys;
+    phonon_beta = beta_T;
+    phonon_tau = tau_sys;
+    phonon_y_T = y_T;
+    phonon_p_y = p_y;
+    phonon_length = length(E_sys) / System_num;
     
     %% Phonon temperature, PRB Figure 3(a)
     figure('Visible', 'off'); hold on; grid;
     
     for i = selected_blocks
-        temp_T1= 1/kb./beta_T(:,(i-1)*System_length_ph+25);
+        temp_T1 = 1 / kb./beta_T(:, (i - 1) * System_length_ph + 25);
         plot(T, temp_T1, 'LineWidth', 1.5)
     end
     
@@ -279,8 +292,8 @@ if run_type == 2 || run_type == 3
     figure('Visible', 'off'); hold on; grid;
     
     for i = selected_blocks
-        temp_E = E_y_T(:,(i-1)*System_length_ph+1:(i)*System_length_ph);
-        plot(T, sum(temp_E,2), 'LineWidth', 1.5)
+        temp_E = E_y_T(:, (i - 1) * System_length_ph + 1:(i) * System_length_ph);
+        plot(T, sum(temp_E, 2), 'LineWidth', 1.5)
     end
     
     set(gca, 'FontSize', 8);
@@ -307,44 +320,54 @@ if run_type == 3
     boltz = 1.380649e-23;
     ej = 1.60218e-19;           % ev to joules
 
-    T_c=[];
+    T_c = [];
 
-    for j=1:max_T_index/100
+    for j = 1:max_T_index/100
         T_c_T = [];
         T_e_T = [];
         T_p_T = [];
 
         for i = total_blocks
-            temp_t_c=0;
-            temp_e_c=0;
+            temp_t_c = 0;
+            temp_e_c = 0;
+            ab = block_sizes(i);
 
-            for k=1:phonon_length-1
-                temp_ph = 1/kb./phonon_beta(j,(i-1)*System_length_ph+25);
-                at=(i-1)*phonon_length+k;
-                temp=phonon_y_T(j,at);
-                cw=hp * phonon_ev(at)^2 * (phonon_dos(at)) * exp(temp) / (boltz*temp_ph^2 * (exp(temp)+1)^2);
-                ch=eh*(phonon_ev(at+1)-phonon_ev(at));
-                temp_t_c=temp_t_c + (ab^2 * cw * ch / (phonon_tau(at)));
+            for k = 1:phonon_length - 1
+                temp_ph = 1 / kb./phonon_beta(j, (i - 1) * System_length_ph + 25);
+                at = (i - 1) * phonon_length + k;
+                temp = phonon_y_T(j,at);
+                cw = hp * phonon_ev(at)^2 * (phonon_dos(at)) * exp(temp) / (boltz * temp_ph^2 * (exp(temp) + 1)^2);
+                if isnan(cw)
+                    cw = 0;
+                end
+
+                ch = eh * (phonon_ev(at + 1) - phonon_ev(at));
+                temp_t_c = temp_t_c + (ab^2 * cw * ch / (phonon_tau(at)));
             end
 
-            for k=1:electron_length-1
-                temp_e = T_e(j,i);
-                at=(i-1)*electron_length+k;
-                temp=electron_y_T(j,at);
-                cw=hp *electron_ev(at) * (electron_dos(at))  * (electron_ev(at)+Ef_sys_e(at))* exp(temp) / (boltz*temp_e^2 * (exp(temp)-1)^2);
-                ch=eh * (electron_ev(at+1)-electron_ev(at));
-                temp_e_c=temp_e_c + (ab^2 * cw * ch/ (electron_tau(at)));
+            for k = 1:electron_length - 1
+                temp_e = T_e(j, i);
+                at = (i - 1) * electron_length + k;
+                temp = electron_y_T(j, at);
+                
+                cw = hp * electron_ev(at) * (electron_dos(at))  * (electron_ev(at) + Ef_sys_e(at)) * exp(temp) / (boltz * temp_e^2 * (exp(temp) - 1)^2);
+                if isnan(cw)
+                    cw = 0;
+                end
+                
+                ch = eh * (electron_ev(at + 1) - electron_ev(at));
+                temp_e_c = temp_e_c + (ab^2 * cw * ch / (electron_tau(at)));
             end
 
-            temp_t_c=temp_t_c/300;
-            temp_e_c=temp_e_c/300;
-            temp_eq=temp_t_c + temp_e_c;
-            T_c_T=[T_c_T temp_eq];
-            T_e_T=[T_e_T temp_e_c];
-            T_p_T=[T_p_T temp_t_c];
+            temp_t_c = temp_t_c / 300;
+            temp_e_c = temp_e_c / 300;
+            temp_eq = temp_t_c + temp_e_c;
+            T_c_T = [T_c_T temp_eq];
+            T_e_T = [T_e_T temp_e_c];
+            T_p_T = [T_p_T temp_t_c];
         end
 
-        T_c=[T_c; T_c_T];
+        T_c = [T_c; T_c_T];
     end 
     
     for i = selected_blocks
@@ -354,7 +377,7 @@ if run_type == 3
     set(gca,'FontSize',8);
     xlabel('Time (seconds)','fontsize',12);
     ylabel('Thermal Conductivity','fontsize',12);
-    title('Thermal Conductivity vs. Time','fontsize',14);
+    title('Thermal Conductivity vs. Time','fontsize', 14);
     lgd = legend(arrayfun(@num2str, selected_blocks, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
     title(lgd, 'Block')
     
