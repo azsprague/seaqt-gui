@@ -1569,8 +1569,6 @@ class SEAQTGui():
 
         # Run the backend (NOTE: blocking)
         try:
-            self.update_plot(PlotNumber.DATA_PROCESSING.value)
-
             if run_type == RunType.ELECTRON.value:
                 self.backend.run_seaqt_electron_only()
             elif run_type == RunType.PHONON.value:
