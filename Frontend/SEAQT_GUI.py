@@ -159,6 +159,9 @@ class SEAQTGui():
         '''
         # Initialize the backend handler
         try:
+            if not os.path.exists(self.TEMP_DIRECTORY_PATH):
+                os.makedirs(self.TEMP_DIRECTORY_PATH)
+                
             self.prefs_file_path = os.path.join(self.TEMP_DIRECTORY_PATH, self.PARAM_PREFERENCES_FILE_NAME)
             self.backend = MATLABBackendHandler(self.prefs_file_path)
         except:
@@ -1569,7 +1572,7 @@ class SEAQTGui():
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
         # Write the JSON object to the prefs file
-        with open(self.prefs_file_path, 'w') as prefs_file:
+        with open(self.prefs_file_path, 'w+') as prefs_file:
             json.dump(self.input_json_dict, prefs_file)
 
         # Run the backend (NOTE: blocking)
