@@ -99,8 +99,8 @@ class SEAQTGui():
     INPUT_PARAMETER_INNER_FRAME_PAD_Y = 5
     INPUT_BOTTOM_BUTTON_PAD_X = 5
 
-    DATA_VIEW_FRAME_WIDTH = 850
-    DATA_VIEW_FRAME_HEIGHT = 700
+    DATA_VIEW_FRAME_WIDTH = 800
+    DATA_VIEW_FRAME_HEIGHT = 628
     DATA_VIEW_FRAME_PAD_X = 5
     DATA_VIEW_FRAME_PAD_Y = 25
 
@@ -146,7 +146,7 @@ class SEAQTGui():
         'Electron Energy',
         'Electrical Conductivity',
         'Seebeck Coefficient',
-        'Phonon Tempertaure',
+        'Phonon Temperature',
         'Phonon Energy',
         'Thermal Conductivity',
         'ZT Factor'
@@ -168,7 +168,7 @@ class SEAQTGui():
         # Create the Tkinter root window
         self.tkinter_root = Tk()
         self.tkinter_root.title('SEAQT GUI')
-        self.tkinter_root.resizable(False, False)
+        # self.tkinter_root.resizable(False, False)
 
         # Data output directory (class variable)
         self.export_directory = StringVar()
@@ -257,10 +257,10 @@ class SEAQTGui():
         menu_option_frame = ttk.LabelFrame(
             self.tkinter_root,
             text='Menu',
-            padding=10,
+            padding=5,
             relief=SOLID
         )
-        menu_option_frame.grid(column=0, row=0, padx=self.MENU_FRAME_PAD_X, pady=self.DATA_VIEW_FRAME_PAD_Y, sticky=N)
+        menu_option_frame.grid(column=0, row=0, padx=10, pady=10, sticky=N)
 
         # New run button
         self.new_run_button = ttk.Button(
@@ -326,20 +326,20 @@ class SEAQTGui():
             width=self.MENU_BUTTON_WIDTH
         ).grid(column=0, row=6, padx=self.MENU_BUTTON_PAD_X, pady=self.MENU_BUTTON_PAD_Y)
 
-        # Copyright
-        ttk.Label(
-            self.tkinter_root,
-            text='© 2023'
-        ).grid(column=1, row=1)
+        # # Copyright
+        # ttk.Label(
+        #     self.tkinter_root,
+        #     text='© 2023'
+        # ).grid(column=1, row=1)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
         # Create right panel
         self.right_menu_frame = ttk.Frame(
             self.tkinter_root,
-            padding=10
+            padding=5
         )
-        self.right_menu_frame.grid(column=2, row=0, padx=10, pady=15, sticky=N)
+        self.right_menu_frame.grid(column=2, row=0, padx=10, pady=0, sticky=N)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
@@ -352,7 +352,7 @@ class SEAQTGui():
         self.block_plot_selection_frame = ttk.LabelFrame(
             self.right_menu_frame,
             text='Blocks to Plot',
-            padding=10,
+            padding=5,
             relief=SOLID
         )
         self.block_plot_selection_frame.grid(column=0, row=1, pady=5)
@@ -376,18 +376,19 @@ class SEAQTGui():
         s.configure('white.TFrame', background='white')
         data_view_frame = ttk.Frame(
             self.tkinter_root,
-            padding=10,
+            padding=5,
             width=self.DATA_VIEW_FRAME_WIDTH,
             height=self.DATA_VIEW_FRAME_HEIGHT,
-            relief=SOLID,
+            # relief=SOLID,
             style='white.TFrame'
         )
-        data_view_frame.grid(column=1, row=0, padx=self.DATA_VIEW_FRAME_PAD_X, pady=self.DATA_VIEW_FRAME_PAD_Y, sticky=N)
+        data_view_frame.grid(column=1, row=0, padx=5, pady=5, sticky=N)
         data_view_frame.grid_propagate(False)
 
         # Create data image (default "no data loaded")
         self.data_frame_image_frame = ttk.Label(
             data_view_frame,
+            borderwidth=0,
             justify=CENTER
         )
         self.data_frame_image_frame.place(relx=0.5, rely=0.5, anchor=CENTER)
@@ -407,7 +408,7 @@ class SEAQTGui():
         self.radio_button_frame = ttk.LabelFrame(
             self.right_menu_frame,
             text='Select Plot',
-            padding=10,
+            padding=5,
             relief=SOLID
         )
         self.radio_button_frame.grid(column=0, row=0, pady=5)
@@ -498,7 +499,7 @@ class SEAQTGui():
         # Create a new pop-up window and take control of input
         input_window = Toplevel(self.tkinter_root)
         input_window.title('Load Data and Set Parameters')
-        input_window.resizable(False, False)
+        # input_window.resizable(False, False)
         input_window.grab_set()
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -1716,6 +1717,7 @@ class SEAQTGui():
         try:
             # Open the desired image
             loaded_image = Image.open(f'Figures/{filenum}.png')
+            # loaded_image = loaded_image.resize((600, 600), Image.NEAREST)
             self.data_frame_image = ImageTk.PhotoImage(loaded_image)
 
             if filenum > 0 and filenum < 10:
@@ -1730,7 +1732,7 @@ class SEAQTGui():
                 self.pop_up_error('Failed to open image/plot. Data may be missing or corrupted.')
 
         # Set the image in the frame
-        self.data_frame_image_frame.configure(image=self.data_frame_image)
+        self.data_frame_image_frame.configure(image=self.data_frame_image, borderwidth=0)
 
 
     def replot(self) -> bool:
@@ -1881,7 +1883,7 @@ class SEAQTGui():
         '''
         export_window = Toplevel(self.tkinter_root)
         export_window.title('Export Generated Plots')
-        export_window.resizable(False, False)
+        # export_window.resizable(False, False)
         export_window.grab_set()
 
         ###################################
