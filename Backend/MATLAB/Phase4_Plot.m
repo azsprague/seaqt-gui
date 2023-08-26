@@ -73,7 +73,7 @@ if run_type == 1 || run_type == 3
     set(gca, 'FontSize', 8);
     xlabel('Time (seconds)', 'fontsize', 12);
     ylabel('Electron Temperature (K)', 'fontsize', 12)
-    title('Electron Temperature vs. Time', 'fontsize', 14)
+    title('Electron Temperature vs. Time', 'fontsize', 12)
     lgd = legend(arrayfun(@num2str, selected_blocks, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
     title(lgd, 'Block')
     
@@ -101,7 +101,7 @@ if run_type == 1 || run_type == 3
     set(gca, 'FontSize', 8);
     xlabel('Time (seconds)', 'fontsize', 12);
     ylabel('Electron Number (particle)', 'fontsize', 12);
-    title('Electron Number vs. Time', 'fontsize', 14)
+    title('Electron Number vs. Time', 'fontsize', 12)
     lgd = legend(arrayfun(@num2str, selected_blocks, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
     title(lgd, 'Block')
     
@@ -127,7 +127,7 @@ if run_type == 1 || run_type == 3
     set(gca, 'FontSize', 8);
     xlabel('Time (seconds)', 'fontsize', 12);
     ylabel('Electron Energy (J)', 'fontsize', 12)
-    title('Electron Energy vs. Time', 'fontsize', 14) 
+    title('Electron Energy vs. Time', 'fontsize', 12) 
     lgd = legend(arrayfun(@num2str, selected_blocks, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
     title(lgd, 'Block')
     
@@ -184,7 +184,7 @@ if run_type == 1 || run_type == 3
     set(gca,'FontSize', 8);
     xlabel('Time (seconds)', 'fontsize', 12);
     ylabel('Electrical Conductivity (Ohms^-^1 cm^-^1)','fontsize', 12);
-    title('Electrical Conductivity vs. Time', 'fontsize', 14)
+    title('Electrical Conductivity vs. Time', 'fontsize', 12)
     lgd = legend(arrayfun(@num2str, selected_blocks, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
     title(lgd, 'Block')
     
@@ -234,7 +234,7 @@ if run_type == 1 || run_type == 3
     set(gca,'FontSize', 8);
     xlabel('Time (seconds)','fontsize',12);
     ylabel('Seebeck Coefficient','fontsize',12);
-    title('Seebeck Coefficient vs. Time','fontsize',14);
+    title('Seebeck Coefficient vs. Time','fontsize',12);
     lgd = legend(arrayfun(@num2str, selected_blocks, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
     title(lgd, 'Block')
     
@@ -282,7 +282,7 @@ if run_type == 2 || run_type == 3
     set(gca, 'FontSize', 8);
     xlabel('Time (seconds)', 'fontsize', 12);
     ylabel('Phonon Temperature (K)', 'fontsize', 12)
-    title('Phonon Temperature vs. Time', 'fontsize', 14)
+    title('Phonon Temperature vs. Time', 'fontsize', 12)
     lgd = legend(arrayfun(@num2str, selected_blocks, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
     title(lgd, 'Block')
     
@@ -299,7 +299,7 @@ if run_type == 2 || run_type == 3
     set(gca, 'FontSize', 8);
     xlabel('Time (seconds)', 'fontsize', 12);
     ylabel('Phonon Energy (J)', 'fontsize', 12)
-    title('Phonon Energy vs. Time', 'fontsize', 14)
+    title('Phonon Energy vs. Time', 'fontsize', 12)
     lgd = legend(arrayfun(@num2str, selected_blocks, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
     title(lgd, 'Block')
     
@@ -377,7 +377,7 @@ if run_type == 3
     set(gca,'FontSize',8);
     xlabel('Time (seconds)','fontsize',12);
     ylabel('Thermal Conductivity','fontsize',12);
-    title('Thermal Conductivity vs. Time','fontsize', 14);
+    title('Thermal Conductivity vs. Time','fontsize', 12);
     lgd = legend(arrayfun(@num2str, selected_blocks, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
     title(lgd, 'Block')
     
@@ -405,7 +405,7 @@ if run_type == 3
     set(gca,'FontSize',8);
     xlabel("Time (seconds)",'fontsize',12);
     ylabel("ZT factor","fontsize",12)
-    title("ZT Factor vs. Time",'fontsize',14)
+    title("ZT Factor vs. Time",'fontsize',12)
     lgd = legend(arrayfun(@num2str, selected_blocks, 'UniformOutput', 0), 'FontSize', 10, 'Location', 'eastoutside');
     title(lgd, 'Block')
     
