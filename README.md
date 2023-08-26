@@ -31,6 +31,7 @@ Further discussion can be found in the file `Introduction.pdf`.
 | Version |   Date   |        Notes       |
 | :-----: | :------: | :----------------: |
 |   1.0   | 05.05.23 | First Full Release |
+|   1.1   | 08.26.23 | Reduced Window Sizes |
 
 ---
 
