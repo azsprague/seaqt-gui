@@ -507,7 +507,7 @@ class SEAQTGui():
         # Create master frame for base parameters
         top_window = ttk.Frame(
             input_window,
-            padding=10
+            padding=5
         )
         top_window.grid(column=0, row=0)
 
@@ -517,7 +517,7 @@ class SEAQTGui():
         # Create master frame for block parameters
         self.block_master_frame = ttk.Frame(
             input_window,
-            padding=10
+            padding=5
         )
         self.block_master_frame.grid(column=0, row=2)
 
@@ -527,7 +527,7 @@ class SEAQTGui():
         base_parameter_input = ttk.LabelFrame(
             top_top_window,
             text='Base Parameters',
-            padding=10,
+            padding=5,
             relief=SOLID
         )
         base_parameter_input.grid(column=0, row=0, padx=5, pady=5)
@@ -658,14 +658,20 @@ class SEAQTGui():
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # 
 
+        # Create top-right frame
+        top_right_frame = ttk.Frame(
+            top_top_window
+        )
+        top_right_frame.grid(column=1, row=0, padx=5, pady=5, sticky=N)
+
         # Create info frame
         info_frame = ttk.LabelFrame(
-            top_top_window, 
+            top_right_frame, 
             text='Info',
-            padding=10,
+            padding=5,
             relief=SOLID
         )
-        info_frame.grid(column=1, row=0, padx=5, pady=5, sticky=N)
+        info_frame.grid(column=0, row=0, padx=5, pady=5, sticky=N)
 
         # Info label
         ttk.Label(
@@ -673,25 +679,23 @@ class SEAQTGui():
             text='Block: a pair of local systems (electron & phonon)\n\nTau: the relaxation parameter'
         ).grid(column=0, row=0, sticky=NW)
 
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-
-        ttk.Separator(top_window, orient=HORIZONTAL).pack(fill=X, pady=7)
-
+        # Default params button
         ttk.Button(
-            top_window,
-            padding=5,
+            top_right_frame,
             text='Import Default Data and Parameters',
             command=self.import_default_settings
-        ).pack(pady=7)
+        ).grid(column=0, row=1, pady=3)
 
-        ttk.Separator(top_window, orient=HORIZONTAL).pack(fill=X, pady=7)
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+        ttk.Separator(top_window, orient=HORIZONTAL).pack(fill=X, pady=3)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
         # Create frame for bottom buttons
         data_input_button_frame = ttk.Frame(
             input_window,
-            padding=10
+            padding=5
         )
         data_input_button_frame.grid(column=0, row=3, padx=5, pady=5)
 
@@ -853,7 +857,7 @@ class SEAQTGui():
                 command=self.update_block_data_window,
                 value=i + 1
             )
-            rb.grid(column=(i // int((num_blocks / 2) + 0.5)) % 2, row=i % int((num_blocks / 2) + 0.5), padx=8, pady=4, sticky=W)
+            rb.grid(column=(i // int((num_blocks / 2) + 0.5)) % 2, row=i % int((num_blocks / 2) + 0.5), padx=5, pady=4, sticky=W)
             self.block_radio_buttons.append(rb)
 
     
