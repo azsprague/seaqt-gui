@@ -66,7 +66,9 @@ if run_type == 1 || run_type == 3
         T_e = [T_e; T_e_T];
     end
     
+    T_es = [nan; T];
     for i = selected_blocks
+        T_es = [T_es, [i; T_e(:, i)]];
         plot(T, T_e(:, i), 'LineWidth', 1.5);
     end
     
@@ -78,6 +80,8 @@ if run_type == 1 || run_type == 3
     title(lgd, 'Block')
     
     exportgraphics(gca, 'Figures/1.png', 'ContentType', 'image');
+    writematrix(T_es, 'tmp/1.csv');
+
     
     %% Electron number
     figure('Visible', 'off'); hold on; grid;
@@ -94,7 +98,9 @@ if run_type == 1 || run_type == 3
         N_e = [N_e; N_e_T];
     end
     
+    N_es = [nan; T];
     for i = selected_blocks
+        N_es = [N_es, [i; N_e(:, i)]];
         plot(T, N_e(:, i), 'LineWidth', 1.5);
     end
     
@@ -106,6 +112,8 @@ if run_type == 1 || run_type == 3
     title(lgd, 'Block')
     
     exportgraphics(gca, 'Figures/2.png', 'ContentType', 'image');
+    writematrix(N_es, 'tmp/2.csv');
+
     
     %% Electron energy, PRB Figure 4(b)
     figure('Visible', 'off'); hold on; grid;
@@ -113,14 +121,18 @@ if run_type == 1 || run_type == 3
     E_e = [];
     for j = 1:max_T_index/100
         E_e_T = []; 
+
         for i = total_blocks
             temp_E_y = E_y_T(j, (i - 1) * System_length_e + 1:i*System_length_e);
             E_e_T = [E_e_T sum(temp_E_y)];
         end
+
         E_e = [E_e; E_e_T];
     end
     
+    E_es = [nan; T];
     for i = selected_blocks
+        E_es = [E_es, [i; E_e(:, i)]];
         plot(T, E_e(:, i), 'LineWidth', 1.5);
     end
     
@@ -132,6 +144,8 @@ if run_type == 1 || run_type == 3
     title(lgd, 'Block')
     
     exportgraphics(gca, 'Figures/3.png', 'ContentType', 'image');
+    writematrix(E_es, 'tmp/3.csv');
+
     
     %% Electrical conductivity
     figure('Visible', 'off'); hold on; grid;
@@ -177,7 +191,9 @@ if run_type == 1 || run_type == 3
         E_c = [E_c; E_c_T];
     end
     
+    E_cs = [nan; T];
     for i = selected_blocks
+        E_cs = [E_cs, [i; E_c(:, i)]];
         plot(T, E_c(:, i), 'LineWidth', 1.5);
     end
     
@@ -189,6 +205,8 @@ if run_type == 1 || run_type == 3
     title(lgd, 'Block')
     
     exportgraphics(gca, 'Figures/4.png', 'ContentType', 'image');
+    writematrix(E_cs, 'tmp/4.csv');
+
     
     %% Seebeck Coefficient
     figure('Visible', 'off'); hold on; grid;
@@ -227,7 +245,9 @@ if run_type == 1 || run_type == 3
         T_n = [T_n; T_n_T];
     end
             
+    T_ns = [nan; T];
     for i = selected_blocks
+        T_ns = [T_ns, [i; T_n(:, i)]];
         plot(T, T_n(:, i), 'LineWidth', 1.5);
     end
     
@@ -239,6 +259,7 @@ if run_type == 1 || run_type == 3
     title(lgd, 'Block')
     
     exportgraphics(gca, 'Figures/5.png', 'ContentType', 'image');
+    writematrix(T_ns, 'tmp/5.csv');
 
 end
 
@@ -274,8 +295,10 @@ if run_type == 2 || run_type == 3
     %% Phonon temperature, PRB Figure 3(a)
     figure('Visible', 'off'); hold on; grid;
     
+    temps_T1 = [nan; T];
     for i = selected_blocks
         temp_T1 = 1 / kb./beta_T(:, (i - 1) * System_length_ph + 25);
+        temps_T1 = [temps_T1, [i; temp_T1]];
         plot(T, temp_T1, 'LineWidth', 1.5)
     end
     
@@ -287,12 +310,16 @@ if run_type == 2 || run_type == 3
     title(lgd, 'Block')
     
     exportgraphics(gca, 'Figures/6.png', 'ContentType', 'image');
+    writematrix(temps_T1, 'tmp/6.csv');
+
     
     %% Phonon energy evolution, PRB Figure 4(c)
     figure('Visible', 'off'); hold on; grid;
-    
+
+    temps_E = [nan; T];
     for i = selected_blocks
         temp_E = E_y_T(:, (i - 1) * System_length_ph + 1:(i) * System_length_ph);
+        temps_E = [temps_E, [i; sum(temp_E, 2)]];
         plot(T, sum(temp_E, 2), 'LineWidth', 1.5)
     end
     
@@ -304,6 +331,7 @@ if run_type == 2 || run_type == 3
     title(lgd, 'Block')
     
     exportgraphics(gca, 'Figures/7.png', 'ContentType', 'image');
+    writematrix(temps_E, 'tmp/7.csv');
 
 end
 
@@ -370,7 +398,9 @@ if run_type == 3
         T_c = [T_c; T_c_T];
     end 
     
+    T_cs = [nan; T];
     for i = selected_blocks
+        T_cs = [T_cs, [i; T_c(:, i)]];
         plot(T, T_c(:, i), 'LineWidth', 1.5);
     end
     
@@ -382,6 +412,8 @@ if run_type == 3
     title(lgd, 'Block')
     
     exportgraphics(gca, 'Figures/8.png', 'ContentType', 'image');
+    writematrix(T_cs, 'tmp/8.csv');
+
     
     %% ZT Factor
     figure('Visible', 'off'); hold on; grid;
@@ -398,7 +430,9 @@ if run_type == 3
         zt = [zt; zt_T];
     end
     
+    zts = [nan; T];
     for i = selected_blocks
+        zts = [zts, [i; zt(:, i)]];
         plot(T, zt(:, i), 'LineWidth', 1.5);
     end
     
@@ -410,4 +444,6 @@ if run_type == 3
     title(lgd, 'Block')
     
     exportgraphics(gca, 'Figures/9.png', 'ContentType', 'image');
+    writematrix(zts, 'tmp/9.csv');
+
 end

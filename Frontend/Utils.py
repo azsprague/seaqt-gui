@@ -23,6 +23,12 @@ def clear_matlab_meta():
         except:
             pass
 
+    for csv in glob.glob('tmp/*.csv'):
+        try:
+            os.remove(csv)
+        except:
+            pass
+
 def clear_prefs():
     '''
     Erase the stored prefs from previous run(s)
