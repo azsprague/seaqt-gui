@@ -32,6 +32,7 @@ Further discussion can be found in the file `Introduction.pdf`.
 | :-----: | :------: | :----------------: |
 |   1.0   | 05.05.23 | First Full Release |
 |   1.1   | 08.26.23 | Reduced Window Sizes |
+|   1.2   | 08.30.23 | Added .csv Data Export Option |
 
 ---
 
@@ -114,11 +115,12 @@ When the plotting is complete, you can select which plot to display by clicking 
 ![Plotting 2](Figures/Plotting%202.png)
 
 
-#### Export Plots
-If you would like to save the plots you've generated, click the `Export` button to open a window to select a destination and which plots to export. Plots will be named as "PlotName_Timestamp.png" by default.
+#### Export Graphs
+If you would like to save the graphs you've generated, click the `Export` button to open a window to select a destination and which graphs to export. You can save both the plot (.png) and the data (.csv) generated from the run. Graphs will be named as "GraphName_Timestamp.png" by default.
 
 ![Save Plots](Figures/Save%20Plots.png)
 
+![Exported Data](Figures/Saved%20Data.png)
 
 #### Save & Load Runs
 SEAQT runs can be saved and loaded by using the `Save` and `Load` buttons, respectively. This was created to save time for subsequent runs. The file format is a `.zip` archive containing data produced from the backend along with the parameters inputted to the GUI.
@@ -135,7 +137,10 @@ Q. *The GUI is not responding to inputs and says "Not Responding" at the top?*
 A. This is likely because the SEAQT backend is currently running. Depending on your inputted run length and type, this process may take a while.
 
 Q. *The SEAQT backend completed but states the data may be corrupted / the plots are empty?*
-A. Many times this can occur when the run length is not sufficiently long enough. Try running with a longer run length or switch to `Max(tau)` instead of `Min(tau)`. If the problem persists, please create a ticket at [here](https://github.com/azsprague/seaqt-gui/issues).
+A. Many times this can occur when the run length is not sufficiently long enough. Try running with a longer run length or switch to `Max(tau)` instead of `Min(tau)`. If the problem persists, please create a ticket [here](https://github.com/azsprague/seaqt-gui/issues).
 
 Q. *When I run the SEAQT backend with a large run length, my system slows down significantly?*
 A. The longer the run length, the more RAM / memory the SEAQT backend will require, which can lead to a slowing-down of your system.
+
+Q. *The GUI is behaving strangely or is not working after performing several tasks?*
+A. The first thing to try is closing and re-opening the GUI. If the problem persists, please create a ticket [here](https://github.com/azsprague/seaqt-gui/issues).

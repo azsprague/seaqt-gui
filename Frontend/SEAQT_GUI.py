@@ -60,6 +60,17 @@ class RunType(IntEnum):
     BOTH = 3
 
 
+class ExportType(IntEnum):
+    '''
+    Enum to map export type to a number for faster acquisition
+    '''
+    INVALID = -1,
+    UNKNOWN = 0,
+    PLOT = 1,
+    DATA = 2,
+    BOTH = 3
+
+
 class SEAQTGui():
     '''
     GUI class for SEAQT handler.
@@ -246,6 +257,9 @@ class SEAQTGui():
         self.plot_variables = []
         self.plot_checkbuttons = []
         self.selected_plots = []
+
+        self.graph_export_buttons = None
+        self.selected_export_type = IntVar(value=ExportType.PLOT.value)
 
         # Run the GUI
         self.activate_main_window()
@@ -1889,7 +1903,7 @@ class SEAQTGui():
         Allow the user to export the generated plots.
         '''
         export_window = Toplevel(self.tkinter_root)
-        export_window.title('Export Generated Plots')
+        export_window.title('Export Generated Graphs')
         # export_window.resizable(False, False)
         export_window.grab_set()
 
@@ -1929,7 +1943,7 @@ class SEAQTGui():
         # Create frame for plot selection
         plot_select_frame = ttk.LabelFrame(
             export_window,
-            text='Select Plot(s) to Export',
+            text='Select Graph(s) to Export',
             padding=15
         )
         plot_select_frame.grid(column=0, row=1, padx=5, pady=5)
@@ -1950,14 +1964,59 @@ class SEAQTGui():
             check_btn.grid(column=(i // (num_of_plots // 3)) % 3, row=i % (num_of_plots // 3), padx=7, pady=5, sticky=W)
             self.plot_checkbuttons.append(check_btn)
 
+        #################################
+        # Start frame for export type #
+        #################################
+
+        # Create frame for plot selection
+        export_type_frame = ttk.LabelFrame(
+            export_window,
+            text='Export Type',
+            padding=15
+        )
+        export_type_frame.grid(column=0, row=2, padx=5)
+
+        self.graph_export_buttons = []
+
+        # Export plot only
+        export_plot_button = ttk.Radiobutton(
+            export_type_frame,
+            text='Plot (.png)',
+            variable=self.selected_export_type,
+            value=ExportType.PLOT.value
+        )
+        export_plot_button.grid(column=0, row=0, padx=5)
+        self.graph_export_buttons.append(export_plot_button)
+
+        # Export data only
+        export_data_button = ttk.Radiobutton(
+            export_type_frame,
+            text='Data (.csv)',
+            variable=self.selected_export_type,
+            value=ExportType.DATA.value
+        )
+        export_data_button.grid(column=1, row=0, padx=5)
+        self.graph_export_buttons.append(export_data_button)
+
+        # Export both plot and data
+        export_both_button = ttk.Radiobutton(
+            export_type_frame,
+            text='Both',
+            variable=self.selected_export_type,
+            value=ExportType.BOTH.value
+        )
+        export_both_button.grid(column=2, row=0, padx=5)
+        self.graph_export_buttons.append(export_both_button)
+
         ##################################
         # Start frame for bottom buttons #
         ##################################
+        
         button_frame = ttk.Frame(
             export_window,
             padding=10
         )
-        button_frame.grid(column=0, row=2, padx=5, pady=5)
+        button_frame.grid(column=0, row=3, padx=5, pady=5)
 
         ttk.Button(
             button_frame,
@@ -1991,25 +2050,52 @@ class SEAQTGui():
 
         num_selected_plots = len(self.selected_plots)
         if num_selected_plots == 0:
-            self.pop_up_error('No Plot(s) Selected. Please Choose at Least One.')
+            self.pop_up_error('No Graph(s) Selected. Please Choose at Least One.')
             return
 
         curr_time = time.time()
-        failed_plots = []
-        for plot_number in self.selected_plots:
-            try:
-                copyfile(f'Figures/{plot_number + 1}.png', os.path.join(self.export_directory.get(), f'{self.PLOT_NAMES[plot_number]}_{curr_time}.png'))
-            except Exception as e:
-                print(e)
-                failed_plots.append(plot_number)
 
-        num_failed_plots = len(failed_plots)
-        if num_failed_plots > 0:
-            self.pop_up_error(f"Failed to save {num_failed_plots} plot{'s' if num_failed_plots > 1 else ''}\n\nData may be missing or corrupted, or there may be an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.")
+        successful_exports = []
+        failed_exports = []
+
+        # Export plots if "Plot" or "Both" is chosen
+        if self.selected_export_type.get() == ExportType.PLOT.value or self.selected_export_type.get() == ExportType.BOTH.value:
+        
+            for plot_number in self.selected_plots:
+                try:
+                    copyfile(f'Figures/{plot_number + 1}.png', os.path.join(self.export_directory.get(), f'{self.PLOT_NAMES[plot_number]}_{curr_time}.png'))
+                    successful_exports.append(plot_number)
+                except Exception as e:
+                    print(e)
+                    failed_exports.append(plot_number)
+
+        # Export data if "Data" or "Both" is chosen
+        if self.selected_export_type.get() == ExportType.DATA.value or self.selected_export_type.get() == ExportType.BOTH.value:
+
+            for plot_number in self.selected_plots:
+                try:
+                    copyfile(f'tmp/{plot_number + 1}.csv', os.path.join(self.export_directory.get(), f'{self.PLOT_NAMES[plot_number]}_{curr_time}.csv'))
+                    successful_exports.append(plot_number)
+                except Exception as e:
+                    print(e)
+                    failed_exports.append(plot_number)
+
+        # Check for failed exports
+        num_failed_exports = len(failed_exports)
+        if num_failed_exports > 0:
+            self.pop_up_error(f"Failed to export {num_failed_exports} files{'s' if num_failed_exports > 1 else ''}\n\nData may be missing or corrupted, or there may be an internal bug.\n\nPlease try again; if the problem persists, please open a ticket at https://github.com/azsprague/seaqt-gui/issues.")
             return
 
         # Release control and close the window
-        self.pop_up_info(f"{num_selected_plots} plot{'s' if num_selected_plots > 1 else ''} successfully saved.")
+        num_successful_exports = len(successful_exports)
+        self.pop_up_info(f"{num_successful_exports} file{'s' if num_successful_exports > 1 else ''} successfully saved.")
+        
+        # Reset choices
+        self.export_directory.set('')
+        self.selected_plots = []
+        self.selected_export_type.set(ExportType.PLOT.value)
+
+        # Release control and close the winow
         export_window.grab_release()
         export_window.destroy()
 
@@ -2022,6 +2108,8 @@ class SEAQTGui():
         '''
         # Reset choices
         self.export_directory.set('')
+        self.selected_plots = []
+        self.selected_export_type.set(ExportType.PLOT.value)
 
         # Release control and close the winow
         export_window.grab_release()
