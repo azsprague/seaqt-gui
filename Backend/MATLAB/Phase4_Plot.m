@@ -59,7 +59,7 @@ if run_type == 1 || run_type == 3
 
         for i = total_blocks
             temp_y = y_T(j, (i - 1) * System_length_e + 1:i*System_length_e);
-            T_e_1 = [ones(System_length_e, 1) E_sys(1:System_length_e)./kb]\temp_y';     % calculate temperature from y
+            T_e_1 = [ones(System_length_e, 1) E_sys((i-1)*System_length_e:i*System_length_e)./kb]\temp_y';     % calculate temperature from y
             T_e_T = [T_e_T 1 / T_e_1(2)];
         end
 
