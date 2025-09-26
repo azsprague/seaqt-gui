@@ -1,0 +1,40 @@
+Sample Input Parameters
+=======================
+
+Number of Blocks:               20
+Run Length:                     100 (min)
+Run Type:                       Both
+
+Block Size:                     1e-7
+Block Temperature:              295 (1-10), 300 (11-20)
+Fermi Energy:                   5.275
+
+Electron EV Data:               Si_electron_ev.xlsx
+Electron DOS Data:              Si_electron_dos.xlsx
+Electron Tau Data:              (none)
+
+Electron Group Velocities:      (none)
+Electorn Relaxation Time:       1e-14
+Electron Effective Mass:        1
+
+Phonon EV Data:                 Si_phonon_ev.xlsx
+Phonon DOS Data:                Si_phonon_dos.xlsx
+Phonon Tau Data:                (none)
+
+Phonon Group Velocities:        7250
+Phonon Relaxation Time (Temperature):         6.53e-8  (250 K)
+                                              4.23e-8  (300 K)
+                                              3.24e-8  (350 K)
+                                              2.68e-8  (400 K)
+                                              2.30e-8  (450 K)
+                                              2.01e-8  (500 K)
+                                              1.78e-8  (550 K)
+                                              1.56e-8  (600 K)
+                                              1.36e-8  (650 K)
+                                              1.81e-8  (700 K)
+                                              1.02e-8  (750 K)
+                                              8.73e-9  (800 K)
+                                              7.46e-9  (850 K)
+                                              6.36e-9  (900 K)
+                                              5.44e-9  (950 K)
+                                              4.64e-9  (1000 K)
